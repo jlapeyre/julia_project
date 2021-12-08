@@ -22,7 +22,8 @@ class JuliaProject:
                  registry_url=None,
                  sys_image_dir="sys_image",
                  sys_image_file=None,
-                 logging_level=None
+                 logging_level=None,
+                 console_logging=False,
                  ):
 
         self.name = name
@@ -32,7 +33,7 @@ class JuliaProject:
             sys_image_file = "sys_" + name + ".so"
         self.sys_image_file = sys_image_file
         self.registry_url = registry_url
-        self.setup_logging(level=logging_level)
+        self.setup_logging(level=logging_level, console=console_logging)
         self.logger.info("Initing JuliaProject")
         self.find_julia()
         self.init_julia_module()
@@ -229,6 +230,6 @@ class JuliaProject:
             Pkg.update()
             Pkg.resolve()
         Pkg.instantiate()
-        compile_script = "compile_" + self.name + ".jl"
+        compile_script = "compile_julia_project.jl"
         logger.info(f"Running compile script {compile_script}")
         Main.include(compile_script)
