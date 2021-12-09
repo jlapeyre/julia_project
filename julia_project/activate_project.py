@@ -33,6 +33,9 @@ class JuliaProject:
             sys_image_file = "sys_" + name + ".so"
         self.sys_image_file = sys_image_file
         self.registry_url = registry_url
+
+
+    def run(self):
         self.setup_logging(level=logging_level, console=console_logging)
         self.logger.info("Initing JuliaProject")
         self.find_julia()
@@ -40,6 +43,7 @@ class JuliaProject:
         self.start_julia()
         self.diagnostics_after_init()
         self.check_and_install_julia_packages()
+
 
     def setup_logging(self, console=False, level=None): # logging.WARNING
         if level is None:
@@ -62,6 +66,7 @@ class JuliaProject:
             logger.addHandler(ch)
 
         self.logger = logger
+
 
     def find_julia(self):
         logger = self.logger
@@ -117,6 +122,7 @@ class JuliaProject:
         self.api = api
         self.info = info
 
+
     def start_julia(self):
         logger = self.logger
         # TODO: support mac and win here
@@ -166,6 +172,7 @@ class JuliaProject:
         self.julia_src_dir = julia_src_dir
         self.loaded_sys_image_path = loaded_sys_image_path
 
+
     def check_and_install_julia_packages(self):
         logger = self.logger
         from julia import Pkg
@@ -187,6 +194,7 @@ class JuliaProject:
             Pkg.resolve()
             logger.info("Pkg.instantiate()")
             Pkg.instantiate()
+
 
     def compile_julia_project(self):
         """

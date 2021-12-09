@@ -31,12 +31,15 @@ Here is a brief example
 import os
 mymodule_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# This just creates an object, but does none of the steps above.
 julia_project = JuliaProject(
     name="mymodule",
     package_path=mymodule_path,
     registry_url = "git@github.com:myuser/MyModuleRegistry.git",
     logging_level = logging.INFO # or WARN, or ERROR
     )
+
+julia_project.run() # This exectutes all the management features listed above
 
 def compile_mymodule():
     julia_project.compile_julia_project()
