@@ -65,19 +65,6 @@ class JuliaProject:
 
     def find_julia(self):
         logger = self.logger
-        # The following would need to be reworked since we moved julia_project to a package.
-        # But, this is perhaps one option too many to support. So for now, we disable it.
-        # _julia_path = os.path.join(self.package_path, self.name, "julia_path.py")
-        # if os.path.exists(_julia_path):
-        #     logger.info(f'found {_julia_path}')
-        #     from ..julia_path import julia_path
-        #     if julia_path == "":
-        #         logger.info('julia_path.julia_path=="".')
-        #     else:
-        #         logger.info('Non-empty julia_path.julia_path=="%s".', julia_path)
-        # else:
-        #     julia_path = ""
-        #     logger.info('julia_path.py does not exist')
 
         julia_path = ""
         # The canonical place to look for a Julia installation is ./julia/bin/julia
