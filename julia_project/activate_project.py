@@ -28,15 +28,17 @@ class JuliaProject:
 
         self.name = name
         self.package_path = package_path
+        self.registry_url = registry_url
         self.sys_image_dir = sys_image_dir
         if sys_image_file is None:
             sys_image_file = "sys_" + name + ".so"
         self.sys_image_file = sys_image_file
-        self.registry_url = registry_url
+        self._logging_level = logging_level
+        self._console_logging = console_logging
 
 
     def run(self):
-        self.setup_logging(level=logging_level, console=console_logging)
+        self.setup_logging(level=self._logging_level, console=self._console_logging)
         self.logger.info("Initing JuliaProject")
         self.find_julia()
         self.init_julia_module()
