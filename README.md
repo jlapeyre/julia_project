@@ -57,7 +57,7 @@ create_sysimage(packages; sysimage_path="sys_mymodule.so",
                 precompile_execution_file="compile_exercise_script.jl")
 ```
 The system image file name `sys_mymodule.so` will be expected by `JuliaProject`.
-You can override this with the argument `sys_image_file=a_different_image.so` to
+You can override this with the argument `sys_image_file="a_different_image.so"` to
 to `JuliaProject`.
 
 #### Arguments to JuliaProject
