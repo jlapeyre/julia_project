@@ -11,6 +11,9 @@ try:
 except:
     from .jill_install import get_installed_bin_path
 
+_QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py to download and install Julia?",
+              'compile' : "Would you like to compile a system image after installation? This takes about four minutes."}
+
 class JuliaProject:
     """
     A class to manage a Julia project with a Python front end.
@@ -46,16 +49,41 @@ class JuliaProject:
         self.sys_image_file_base = sys_image_file_base
         self._logging_level = logging_level
         self._console_logging = console_logging
+        self._question_results = {'install': None, 'compile': None}
 
 
     def run(self):
         self.setup_logging(level=self._logging_level, console=self._console_logging)
         self.logger.info("Initing JuliaProject")
+        self.read_environment_variables()
         self.find_julia()
         self.init_julia_module()
         self.start_julia()
         self.diagnostics_after_init()
         self.check_and_install_julia_packages()
+
+
+    def read_environment_variables(self):
+        result = os.getenv("JULIA_PROJECT_INSTALL_JULIA")
+        if result:
+           if result == 'y':
+               self._question_results['install'] = True
+               self.logger.info("read JULIA_PROJECT_INSTALL_JULIA = 'y'")
+           elif result == 'n':
+               self._question_results['install'] = False
+               self.logger.info("read JULIA_PROJECT_INSTALL_JULIA = 'n'")
+           else:
+               raise ValueError("JULIA_PROJECT_INSTALL_JULIA must be y or n")
+        result = os.getenv("JULIA_PROJECT_COMPILE")
+        if result:
+           if result == 'y':
+               self._question_results['compile'] = True
+               self.logger.info("read JULIA_PROJECT_COMPILE = 'y'")
+           elif result == 'n':
+               self._question_results['compile'] = False
+               self.logger.info("read JULIA_PROJECT_COMPILE = 'n'")
+           else:
+               raise ValueError("JULIA_PROJECT_COMPILE must be y or n")
 
 
     def setup_logging(self, console=False, level=None): # logging.WARNING
@@ -79,6 +107,13 @@ class JuliaProject:
             logger.addHandler(ch)
 
         self.logger = logger
+
+
+    def _ask_questions(self):
+        for q in self._question_results.keys():
+            if self._question_results[q] is None:
+                result = jill.utils.query_yes_no(_QUESTIONS[q])
+                self._question_results[q] = result
 
 
     def find_julia(self):
@@ -117,8 +152,8 @@ class JuliaProject:
             else:
                 logger.info("No julia found on PATH.")
                 logger.info("Asking to install via jill.py")
-                question = "No Julia installation found. Would you like jill.py to download and install Julia?"
-                if jill.utils.query_yes_no(question):
+                self._ask_questions()
+                if self._question_results['install']:
                     logger.info("Installing via jill.py")
                     jill.install.install_julia(confirm=True) # Prompt to install Julia via jill
                     path = get_installed_bin_path(self.preferred_julia_versions)
@@ -226,6 +261,8 @@ class JuliaProject:
         else:
             print("Julia packages not installed, installing...")
             logger.info("Julia packages not installed or found.")
+            self._question_results['install'] = False
+            self._ask_questions()
             if self.registry_url:
                 logger.info(f"Installing registry from {self.registry_url}.")
                 #            Pkg.Registry
@@ -236,6 +273,8 @@ class JuliaProject:
             Pkg.resolve()
             logger.info("Pkg.instantiate()")
             Pkg.instantiate()
+            if self._question_results['compile']:
+                self.compile_julia_project()
 
 
     def compile_julia_project(self):

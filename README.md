@@ -93,6 +93,14 @@ console_logging=False
 * `logging_level` -- if `None`, then `logging.INFO` will be used.
 * `console_logging` -- if `True`, then the log messages are echoed to the console.
 
+#### Environment variables
+
+* `JULIA_PROJECT_INSTALL_JULIA` may be set to `y` or `n`. If set, then no interactive query is done to install Julia via `jill.py`.
+   Instead the value `y` or `n` is used.
+
+* `JULIA_PROJECT_COMPILE` may be set to `y` or `n`. If set, then no interactive query is done to compile a system image
+   after installing packages. Instead the value `y` or `n` is used.
+
 #### Location of julia executable
 
 `JuliaProject` will look in the package top level for the installation `./julia/` and
