@@ -60,9 +60,12 @@ packages = [:PyCall, :APackage, :AnotherPackge]
 create_sysimage(packages; sysimage_path="sys_julia_project.so",
                 precompile_execution_file="compile_exercise_script.jl")
 ```
+The system image name must be "sys_julia_project.so".
+The precompilation can be done however you like, or not at all. The name "compile_exercise_script.jl"
+is only an example.
 After compiling, the system image file will be renamed from
 `sys_julia_project.so`, to a name that includes the version of the julia exectuable
-that built it. This is the file name that will be searched for the next time
+that built it. The latter is the file name that will be searched for the next time
 you import `mymodule`.
 
 #### Arguments to JuliaProject
