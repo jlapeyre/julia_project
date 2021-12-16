@@ -87,7 +87,7 @@ class JuliaProject:
     def _ask_questions(self):
         for q in self._question_results.keys():
             if self._question_results[q] is None:
-                result = query_yes_no(self._QUESTIONS[q])
+                result = jill.utils.query_yes_no(self._QUESTIONS[q])
                 self._question_results[q] = result
 
 
