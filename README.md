@@ -15,6 +15,7 @@ in the top level describing the Julia packages for the project. You might do
 
 Then `import mymodule` will do the following
 
+* Offer to download and install Julia if it is not found.
 * Check that the `julia` package is installed. I.e. check that `PyCall` is installed and built, etc.
 * Optionally download and install a Julia registry.
 * Look for the Julia executable in various places
