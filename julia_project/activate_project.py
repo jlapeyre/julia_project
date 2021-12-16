@@ -25,7 +25,8 @@ class JuliaProject:
     5) Compiling a system image for the Julia Project
     """
 
-    def __init__(self, name,
+    def __init__(self,
+                 name,
                  package_path,
                  registry_url=None,
                  preferred_julia_versions = ['1.7', '1.6', 'latest'],

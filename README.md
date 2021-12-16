@@ -68,32 +68,34 @@ you import `mymodule`.
 #### Arguments to JuliaProject
 
 ```python
+name,
 package_path,
 registry_url=None,
-sys_image_dir="sys_image",
 preferred_julia_versions = ['1.7', '1.6', 'latest'],
+sys_image_dir="sys_image",
 sys_image_file_base=None,
 logging_level=None,
 console_logging=False
 ```
 
-If `logging_level` is `None`, then `logging.INFO` will be used.
-
-If `registry_url` is `None`, then no registry will be installed (other than
-the General registry by `pyjulia`)
-
-`preferred_julia_versions` is a list of Julia version numbers specifying the which julia version to search for in the jill.py installation directories.
-If one of these is found, it will be used. If it is not found, but another jill-installed version is found, it will be used.
-
-`sys_image_file_base` is the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".so"`.
-
-If `console_logging` is `True` the log messages are echoed to the console.
+* `name` -- the name of the module, e.g. "mymodule". Used only in the logger and the name of the system image.
+* `package_path` -- path to the top level of `mymodule`.
+* `registry_url` -- if `None` then no registry will be installed (other than
+   the General registry, if not already installed.)
+* `preferred_julia_versions` -- a list of preferred julia versions to search for, in order, in the [`jill.py`](https://github.com/johnnychen94/jill.py)
+   installation directory. If no preferred version is found, but another jill-installed version is found, it will be used.
+* `sys_image_dir` -- the directory in which scripts for compiling a system image, and the system images, are found. This is
+   relative to the top level of `mymodule`.
+* `sys_image_file_base` -- the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".so"`.
+* `logging_level` -- if `None`, then `logging.INFO` will be used.
+* `console_logging` -- if `True`, then the log messages are echoed to the console.
 
 #### Location of julia executable
 
 `JuliaProject` will look in the package top level for the installation `./julia/` and
 executable `./julia/bin/julia`. This can be a symlink to an installation. If this
-fails, then `JuliaProject` looks in your `PATH`.
+fails, then  looks in your `PATH`. If this fails, `JuliaProject` will download
+and install Julia after prompting you.
 
 #### Warning
 
