@@ -1,7 +1,15 @@
 import logging
 import os
 from os.path import dirname
+import shutil
 import julia
+import jill.install
+import jill.utils
+
+try:
+    jill.install.get_installed_bin_path
+except:
+    from .jill_install import get_installed_bin_path
 
 class JuliaProject:
     """
@@ -20,8 +28,9 @@ class JuliaProject:
     def __init__(self, name,
                  package_path,
                  registry_url=None,
+                 preferred_julia_versions = ['1.7', '1.6', 'latest'],
                  sys_image_dir="sys_image",
-                 sys_image_file=None,
+                 sys_image_file_base=None,
                  logging_level=None,
                  console_logging=False,
                  ):
@@ -29,10 +38,11 @@ class JuliaProject:
         self.name = name
         self.package_path = package_path
         self.registry_url = registry_url
+        self.preferred_julia_versions = preferred_julia_versions
         self.sys_image_dir = sys_image_dir
-        if sys_image_file is None:
-            sys_image_file = "sys_" + name + ".so"
-        self.sys_image_file = sys_image_file
+        if sys_image_file_base is None:
+            sys_image_file_base = "sys_" + name
+        self.sys_image_file_base = sys_image_file_base
         self._logging_level = logging_level
         self._console_logging = console_logging
 
@@ -73,12 +83,12 @@ class JuliaProject:
     def find_julia(self):
         logger = self.logger
 
-        julia_path = ""
+        julia_path = None
         # The canonical place to look for a Julia installation is ./julia/bin/julia
 
         julia_directory_in_toplevel = os.path.join(self.package_path, "julia")
         julia_executable_under_toplevel = os.path.join(julia_directory_in_toplevel, "bin", "julia")
-        if os.path.exists(julia_executable_under_toplevel) and julia_path == "":
+        if os.path.exists(julia_executable_under_toplevel) and not julia_path:
             julia_path = julia_executable_under_toplevel
             logger.info("Using executable from julia installation in julia project toplevel '%s'.", julia_path)
         elif os.path.exists(julia_directory_in_toplevel):
@@ -92,10 +102,35 @@ class JuliaProject:
                 print(msg)
         else:
             logger.info("No julia installation found at '%s'.", julia_directory_in_toplevel)
+            path = get_installed_bin_path(self.preferred_julia_versions)
+            if path is not None:
+                julia_path = path
+                logger.info("jill.py Julia installation found: %s.", julia_path)
+            else:
+                logger.info("No jill.py Julia installation found.")
+        if julia_path is None:
+            which_julia = shutil.which("julia")
+            if which_julia:
+                logger.info("Found julia on PATH: %s.", which_julia)
+                julia_path = which_julia
+            else:
+                logger.info("No julia found on PATH.")
+                logger.info("Asking to install via jill.py")
+                question = "No Julia installation found. Would you like jill.py to download and install Julia?"
+                if jill.utils.query_yes_no(question):
+                    logger.info("Installing via jill.py")
+                    jill.install.install_julia(confirm=True) # Prompt to install Julia via jill
+                    path = get_installed_bin_path(self.preferred_julia_versions)
+                    if path is not None:
+                        julia_path = path
+                        logger.info("Fresh jill.py Julia installation found: %s.", julia_path)
+                    else:
+                        logger.info("No fresh jill.py Julia installation found.")
+                else:
+                    logger.info("User refused installing Julia via jill.py")
 
         self.julia_path = julia_path
 
-    # If the binary does not exist, the standard search path will be used
 
     def init_julia_module(self):
         julia_path = self.julia_path
@@ -113,6 +148,8 @@ class JuliaProject:
             return api, info
         (api, info) = load_julia(julia_path, logger)
         logger.info("Loaded LibJulia and JuliaInfo.")
+        logger.info("Julia version_raw: %s.", info.version_raw)
+        self.version_raw = info.version_raw
 
         if not info.is_pycall_built():
             logger.info("PyCall not built. Installing julia module.")
@@ -124,11 +161,13 @@ class JuliaProject:
         self.api = api
         self.info = info
 
+    def get_sys_image_file_name(self):
+        return self.sys_image_file_base + "-" + self.version_raw + ".so"
 
     def start_julia(self):
         logger = self.logger
         # TODO: support mac and win here
-        sys_image_path = os.path.join(self.package_path, self.sys_image_dir, self.sys_image_file)
+        sys_image_path = os.path.join(self.package_path, self.sys_image_dir, self.get_sys_image_file_name())
         self.sys_image_path = sys_image_path
         sys_image_path_exists = os.path.exists(sys_image_path)
         self.sys_image_path_exists = sys_image_path_exists
@@ -137,7 +176,7 @@ class JuliaProject:
             self.api.sysimage = sys_image_path
             logger.info("Loading system image %s", sys_image_path)
         else:
-            logger.info("No custom system image found.")
+            logger.info("No custom system image found: %s.", sys_image_path)
 
             # Both the path and possibly the sysimage have been set. Now initialize Julia.
         logger.info("Initializing julia")
@@ -228,5 +267,16 @@ class JuliaProject:
             Pkg.resolve()
         Pkg.instantiate()
         compile_script = "compile_julia_project.jl"
-        logger.info(f"Running compile script {compile_script}")
+        logger.info(f"Running compile script {compile_script}.")
         Main.include(compile_script)
+        compiled_system_image = os.path.join(self.package_path, self.sys_image_dir, "sys_julia_project.so")
+        if os.path.isfile(compiled_system_image):
+            logger.info("Compiled image found: %s.", compiled_system_image)
+            os.rename(compiled_system_image, self.sys_image_path)
+            logger.info("Renamed compiled image to: %s.", self.sys_image_path)
+            if not os.path.isfile(self.sys_image_path):
+                logger.error("Failed renamed compiled image to: %s.", self.sys_image_path)
+                raise FileNotFoundError(compiled_system_image)
+        else:
+            raise FileNotFoundError(compiled_system_image)
+        Pkg.activate(self.package_path) # TODO: probably use try, in order to make sure this runs

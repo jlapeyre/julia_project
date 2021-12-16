@@ -56,12 +56,13 @@ using PackageCompiler
 
 packages = [:PyCall, :APackage, :AnotherPackge]
 
-create_sysimage(packages; sysimage_path="sys_mymodule.so",
+create_sysimage(packages; sysimage_path="sys_julia_project.so",
                 precompile_execution_file="compile_exercise_script.jl")
 ```
-The system image file name `sys_mymodule.so` will be expected by `JuliaProject`.
-You can override this with the argument `sys_image_file="a_different_image.so"` to
-to `JuliaProject`.
+After compiling, the system image file will be renamed from
+`sys_julia_project.so`, to a name that includes the version of the julia exectuable
+that built it. This is the file name that will be searched for the next time
+you import `mymodule`.
 
 #### Arguments to JuliaProject
 
@@ -69,7 +70,8 @@ to `JuliaProject`.
 package_path,
 registry_url=None,
 sys_image_dir="sys_image",
-sys_image_file=None,
+preferred_julia_versions = ['1.7', '1.6', 'latest'],
+sys_image_file_base=None,
 logging_level=None,
 console_logging=False
 ```
@@ -78,6 +80,11 @@ If `logging_level` is `None`, then `logging.INFO` will be used.
 
 If `registry_url` is `None`, then no registry will be installed (other than
 the General registry by `pyjulia`)
+
+`preferred_julia_versions` is a list of Julia version numbers specifying the which julia version to search for in the jill.py installation directories.
+If one of these is found, it will be used. If it is not found, but another jill-installed version is found, it will be used.
+
+`sys_image_file_base` is the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".so"`.
 
 If `console_logging` is `True` the log messages are echoed to the console.
 

@@ -12,7 +12,7 @@ setuptools.setup(
     author='John Lapeyre',
     packages=setuptools.find_packages(),
     py_modules=["julia_project", ],
-    install_requires=['julia', ],
+    install_requires=['julia', 'jill'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
