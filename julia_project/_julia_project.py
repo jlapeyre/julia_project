@@ -6,13 +6,14 @@ import julia
 import jill.install
 import jill.utils
 
-try:
-    jill.install.get_installed_bin_path
-except:
-    from ._jill_install import get_installed_bin_path
+# try:
+#     jill.install.get_installed_bin_path
+# except:
+from ._jill_install import get_installed_bin_path
 
 _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py to download and install Julia?",
-              'compile' : "Would you like to compile a system image after installation? This takes about four minutes."}
+              'compile' : "Compilation takes four minutes and can be done at any time.\nWould you like to compile a system image after installation?"}
+
 
 class JuliaProject:
     """
@@ -48,12 +49,16 @@ class JuliaProject:
         if sys_image_file_base is None:
             sys_image_file_base = "sys_" + name
         self.sys_image_file_base = sys_image_file_base
+
         self.env_prefix = env_prefix
         self._logging_level = logging_level
         self._console_logging = console_logging
         self._question_results = {'install': None, 'compile': None}
         self._SETUP = False
 
+
+    def set_paths(self):
+        pass
 
     def setup(self):
         self.setup_logging(level=self._logging_level, console=self._console_logging)
@@ -67,6 +72,7 @@ class JuliaProject:
             self.setup()
         self.find_julia()
         self.init_julia_module()
+        self.set_paths()
         self.start_julia()
         self.diagnostics_after_init()
         self.check_and_install_julia_packages()
@@ -220,22 +226,33 @@ class JuliaProject:
         self.api = api
         self.info = info
 
+
     def get_sys_image_file_name(self):
         return self.sys_image_file_base + "-" + self.version_raw + ".so"
+
+
+    def set_paths(self):
+        self.project_toml = os.path.join(self.package_path, "Project.toml")
+        self.manifest_toml = os.path.join(self.package_path, "Manifest.toml")
+        full_sys_imag_path = os.path.join(self.package_path, self.sys_image_dir)
+        self.sys_image_path = os.path.join(full_sys_imag_path, self.get_sys_image_file_name())
+        self.sys_image_project_toml = os.path.join(full_sys_imag_path, "Project.toml")
+        self.sys_image_manifest_toml = os.path.join(full_sys_imag_path, "Manifest.toml")
+        self.compiled_system_image = os.path.join(full_sys_imag_path, "sys_julia_project.so")
+
 
     def start_julia(self):
         logger = self.logger
         # TODO: support mac and win here
-        sys_image_path = os.path.join(self.package_path, self.sys_image_dir, self.get_sys_image_file_name())
-        self.sys_image_path = sys_image_path
-        sys_image_path_exists = os.path.exists(sys_image_path)
-        self.sys_image_path_exists = sys_image_path_exists
+        # sys_image_path = os.path.join(self.package_path, self.sys_image_dir, self.get_sys_image_file_name())
+        # self.sys_image_path = sys_image_path
+        self.sys_image_path_exists = os.path.exists(self.sys_image_path)
 
-        if sys_image_path_exists:
-            self.api.sysimage = sys_image_path
-            logger.info("Loading system image %s", sys_image_path)
+        if self.sys_image_path_exists:
+            self.api.sysimage = self.sys_image_path
+            logger.info("Loading system image %s", self.sys_image_path)
         else:
-            logger.info("No custom system image found: %s.", sys_image_path)
+            logger.info("No custom system image found: %s.", self.sys_image_path)
 
             # Both the path and possibly the sysimage have been set. Now initialize Julia.
         logger.info("Initializing julia")
@@ -260,9 +277,8 @@ class JuliaProject:
         logger.info("Probed julia command: %s", julia_cmd)
 
         from julia import Pkg
-        project_toml = os.path.join(self.package_path, "Project.toml")
-        if not os.path.isfile(project_toml):
-            msg = f"File \"{project_toml}\" does not exist."
+        if not os.path.isfile(self.project_toml):
+            msg = f"File \"{self.project_toml}\" does not exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
         Pkg.activate(self.package_path) # Use package data in Project.toml
@@ -278,9 +294,8 @@ class JuliaProject:
         logger = self.logger
         from julia import Pkg
         ### Instantiate Julia project, i.e. download packages, etc.
-        julia_manifest_path = os.path.join(self.package_path, "Manifest.toml")
         # Assume that if built system image exists, then Julia packages are installed.
-        if self.sys_image_path_exists or os.path.exists(julia_manifest_path):
+        if self.sys_image_path_exists or os.path.isfile(self.manifest_toml):
             logger.info("Julia project packages found.")
         else:
             print("Julia packages not installed, installing...")
@@ -312,14 +327,12 @@ class JuliaProject:
                         f"Consider deleting  {self.sys_image_path} and restarting python."):
                 print(msg)
                 logger.warn(msg)
-        sys_image_toml = os.path.join(self.sys_image_dir, "Project.toml")
-        if not os.path.isfile(sys_image_toml):
-            msg = f"File \"{sys_image_toml}\" does not exist."
+        if not os.path.isfile(self.sys_image_project_toml):
+            msg = f"File \"{self.sys_image_project_toml}\" does not exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
-        sys_image_manifest = os.path.join(self.sys_image_dir, "Manifest.toml")
-        if os.path.isfile(sys_image_manifest):
-            os.remove(sys_image_manifest)
+        if os.path.isfile(self.sys_image_manifest_toml):
+            os.remove(self.sys_image_manifest_toml)
         from julia import Pkg
         Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
         Pkg.activate(self.sys_image_dir)
@@ -337,14 +350,33 @@ class JuliaProject:
         compile_script = "compile_julia_project.jl"
         logger.info(f"Running compile script {compile_script}.")
         Main.include(compile_script)
-        compiled_system_image = os.path.join(self.package_path, self.sys_image_dir, "sys_julia_project.so")
-        if os.path.isfile(compiled_system_image):
-            logger.info("Compiled image found: %s.", compiled_system_image)
-            os.rename(compiled_system_image, self.sys_image_path)
+        if os.path.isfile(self.compiled_system_image):
+            logger.info("Compiled image found: %s.", self.compiled_system_image)
+            os.rename(self.compiled_system_image, self.sys_image_path)
             logger.info("Renamed compiled image to: %s.", self.sys_image_path)
             if not os.path.isfile(self.sys_image_path):
                 logger.error("Failed renamed compiled image to: %s.", self.sys_image_path)
-                raise FileNotFoundError(compiled_system_image)
+                raise FileNotFoundError(self.compiled_system_image)
         else:
-            raise FileNotFoundError(compiled_system_image)
+            raise FileNotFoundError(self.compiled_system_image)
         Pkg.activate(self.package_path) # TODO: probably use try, in order to make sure this runs
+
+
+    def update(self):
+        logger = self.logger
+        if os.path.isfile(self.manifest_toml):
+            logger.info(f"Removing {self.manifest_toml}")
+            os.remove(self.manifest_toml)
+        if os.path.isfile(self.sys_image_manifest_toml):
+            logger.info(f"Removing {self.sys_image_manifest_toml}")
+            os.remove(self.sys_image_manifest_toml)
+        if os.path.isfile(self.sys_image_path):
+            logger.info(f"Removing {self.sys_image_path}")
+            os.remove(self.sys_image_path)
+
+        from julia import Pkg
+        Pkg.activate(self.package_path)
+        logger.info("Updating Julia packages")
+        Pkg.update()
+        Pkg.resolve()
+        Pkg.instantiate()
