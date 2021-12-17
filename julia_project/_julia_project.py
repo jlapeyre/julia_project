@@ -317,6 +317,9 @@ class JuliaProject:
             msg = f"File \"{sys_image_toml}\" does not exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
+        sys_image_manifest = os.path.join(self.sys_image_dir, "Manifest.toml")
+        if os.path.isfile(sys_image_manifest):
+            os.remove(sys_image_manifest)
         from julia import Pkg
         Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
         Pkg.activate(self.sys_image_dir)
