@@ -194,6 +194,8 @@ class JuliaProject:
                 else:
                     logger.info("User refused installing Julia via jill.py")
 
+        if self._question_results['install'] is None:
+            self._question_results['install'] = False
         self.julia_path = julia_path
 
 
@@ -218,6 +220,7 @@ class JuliaProject:
 
         if not info.is_pycall_built():
             logger.info("PyCall not built. Installing julia module.")
+            self._ask_questions()
             if os.path.exists(julia_path):
                 julia.install(julia=julia_path)
             else:
