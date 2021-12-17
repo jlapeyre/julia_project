@@ -246,9 +246,6 @@ class JuliaProject:
 
     def start_julia(self):
         logger = self.logger
-        # TODO: support mac and win here
-        # sys_image_path = os.path.join(self.package_path, self.sys_image_dir, self.get_sys_image_file_name())
-        # self.sys_image_path = sys_image_path
         self.sys_image_path_exists = os.path.exists(self.sys_image_path)
 
         if self.sys_image_path_exists:
@@ -257,7 +254,7 @@ class JuliaProject:
         else:
             logger.info("No custom system image found: %s.", self.sys_image_path)
 
-            # Both the path and possibly the sysimage have been set. Now initialize Julia.
+        # Both the path and possibly the sysimage have been set. Now initialize Julia.
         logger.info("Initializing julia")
         self.api.init_julia()
 
@@ -307,7 +304,6 @@ class JuliaProject:
             self._ask_questions()
             if self.registry_url:
                 logger.info(f"Installing registry from {self.registry_url}.")
-                #            Pkg.Registry
                 Pkg.Registry.add(Pkg.RegistrySpec(url = self.registry_url))
             else:
                 logger.info(f"No registry installation requested.")
