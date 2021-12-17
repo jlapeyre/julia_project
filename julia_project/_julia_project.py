@@ -9,7 +9,7 @@ import jill.utils
 try:
     jill.install.get_installed_bin_path
 except:
-    from .jill_install import get_installed_bin_path
+    from ._jill_install import get_installed_bin_path
 
 _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py to download and install Julia?",
               'compile' : "Would you like to compile a system image after installation? This takes about four minutes."}
@@ -35,6 +35,7 @@ class JuliaProject:
                  preferred_julia_versions = ['1.7', '1.6', 'latest'],
                  sys_image_dir="sys_image",
                  sys_image_file_base=None,
+                 env_prefix="JULIA_PROJECT_",
                  logging_level=None,
                  console_logging=False,
                  ):
@@ -47,43 +48,58 @@ class JuliaProject:
         if sys_image_file_base is None:
             sys_image_file_base = "sys_" + name
         self.sys_image_file_base = sys_image_file_base
+        self.env_prefix = env_prefix
         self._logging_level = logging_level
         self._console_logging = console_logging
         self._question_results = {'install': None, 'compile': None}
+        self._SETUP = False
 
 
-    def run(self):
+    def setup(self):
         self.setup_logging(level=self._logging_level, console=self._console_logging)
         self.logger.info("Initing JuliaProject")
         self.read_environment_variables()
+        self._SETUP = True
+
+
+    def run(self):
+        if not self._SETUP:
+            self.setup()
         self.find_julia()
         self.init_julia_module()
         self.start_julia()
         self.diagnostics_after_init()
         self.check_and_install_julia_packages()
 
+    def _envname(self, env_var):
+        return self.env_prefix + env_var
+
+
+    def _getenv(self, env_var):
+        return os.getenv(self.env_prefix + env_var)
+
 
     def read_environment_variables(self):
-        result = os.getenv("JULIA_PROJECT_INSTALL_JULIA")
+        result = self._getenv("INSTALL_JULIA")
         if result:
            if result == 'y':
                self._question_results['install'] = True
-               self.logger.info("read JULIA_PROJECT_INSTALL_JULIA = 'y'")
+               self.logger.info(f"read {self._envname('INSTALL_JULIA')} = 'y'")
            elif result == 'n':
                self._question_results['install'] = False
-               self.logger.info("read JULIA_PROJECT_INSTALL_JULIA = 'n'")
+               self.logger.info(f"read {self._envname('INSTALL_JULIA')} = 'n'")
            else:
-               raise ValueError("JULIA_PROJECT_INSTALL_JULIA must be y or n")
-        result = os.getenv("JULIA_PROJECT_COMPILE")
+               raise ValueError(f"{self._envname('INSTALL_JULIA')} must be y or n")
+        result = self._getenv("COMPILE")
         if result:
            if result == 'y':
                self._question_results['compile'] = True
-               self.logger.info("read JULIA_PROJECT_COMPILE = 'y'")
+               self.logger.info(f"read {self._envname('COMPILE')} = 'y'")
            elif result == 'n':
                self._question_results['compile'] = False
-               self.logger.info("read JULIA_PROJECT_COMPILE = 'n'")
+               self.logger.info(f"read {self._envname('COMPILE')} = 'n'")
            else:
-               raise ValueError("JULIA_PROJECT_COMPILE must be y or n")
+               raise ValueError(f"{self._envname('COMPILE')} must be y or n")
 
 
     def setup_logging(self, console=False, level=None): # logging.WARNING
@@ -121,6 +137,13 @@ class JuliaProject:
 
         julia_path = None
         # The canonical place to look for a Julia installation is ./julia/bin/julia
+        result = self._getenv("JULIA_PATH")
+        if result:
+            self.julia_path = result
+            logger.info(f"Using path {self._envname('JULIA_PATH')} = {self.julia_path}")
+            return None
+        else:
+            logger.info(f"Env variable {self._envname('JULIA_PATH')} not set.")
 
         julia_directory_in_toplevel = os.path.join(self.package_path, "julia")
         julia_executable_under_toplevel = os.path.join(julia_directory_in_toplevel, "bin", "julia")
@@ -237,8 +260,9 @@ class JuliaProject:
         logger.info("Probed julia command: %s", julia_cmd)
 
         from julia import Pkg
-        if not os.path.isfile(os.path.join(self.package_path, "Project.toml")):
-            msg = f"File \"{os.path.join(self.package_path, 'Project.toml')}\" does not exist."
+        project_toml = os.path.join(self.package_path, "Project.toml")
+        if not os.path.isfile(project_toml):
+            msg = f"File \"{project_toml}\" does not exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
         Pkg.activate(self.package_path) # Use package data in Project.toml
@@ -288,8 +312,9 @@ class JuliaProject:
                         f"Consider deleting  {self.sys_image_path} and restarting python."):
                 print(msg)
                 logger.warn(msg)
-        if not os.path.isfile(os.path.join(self.sys_image_dir, "Project.toml")):
-            msg = f"File \"{os.path.join(self.package_path, 'Project.toml')}\" does not exist."
+        sys_image_toml = os.path.join(self.sys_image_dir, "Project.toml")
+        if not os.path.isfile(sys_image_toml):
+            msg = f"File \"{sys_image_toml}\" does not exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
         from julia import Pkg

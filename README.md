@@ -77,6 +77,7 @@ registry_url=None,
 preferred_julia_versions = ['1.7', '1.6', 'latest'],
 sys_image_dir="sys_image",
 sys_image_file_base=None,
+env_prefix="JULIA_PROJECT_",
 logging_level=None,
 console_logging=False
 ```
@@ -90,10 +91,17 @@ console_logging=False
 * `sys_image_dir` -- the directory in which scripts for compiling a system image, and the system images, are found. This is
    relative to the top level of `mymodule`.
 * `sys_image_file_base` -- the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".so"`.
+* `env_prefix` -- Prefix for environment variables to set project options
 * `logging_level` -- if `None`, then `logging.INFO` will be used.
 * `console_logging` -- if `True`, then the log messages are echoed to the console.
 
 #### Environment variables
+
+
+* In the following, the prefix `JULIA_PROJECT_` may be changed with the argument `env_prefix` described above. This allows you
+  to set environment variables specific to each project that do not interfere.
+
+* `JULIA_PROJECT_JULIA_PATH` may be set to the path to a Julia executable. This will override other possible paths to a Julia executable.
 
 * `JULIA_PROJECT_INSTALL_JULIA` may be set to `y` or `n`. If set, then no interactive query is done to install Julia via `jill.py`.
    Instead the value `y` or `n` is used.
@@ -103,10 +111,18 @@ console_logging=False
 
 #### Location of julia executable
 
-`JuliaProject` will look in the package top level for the installation `./julia/` and
-executable `./julia/bin/julia`. This can be a symlink to an installation. If this
-fails, then  looks in your `PATH`. If this fails, `JuliaProject` will download
-and install Julia after prompting you.
+`JuliaProject` will look in the following locations, in order
+
+* The environment variabel `JULIA_PROJECT_JULIA_PATH`. With `JULIA_PROJECT_` optionally replaced by `env_prefix` described above.
+
+* In the package top level for the installation `./julia/`
+
+* A julia installation from `jill.py`, with preferred versions specified as above.
+
+* Your system or shell PATH variable.
+
+* A fresh installation of julia via `jill.py` after asking if you want to download and install.
+
 
 #### Warning
 
