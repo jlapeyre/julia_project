@@ -197,7 +197,6 @@ class JuliaProject:
                 if self._question_results['install']:
                     logger.info("Installing via jill.py")
                     jill.install.install_julia(confirm=True) # Prompt to install Julia via jill
-#                    path = get_installed_bin_path(self.preferred_julia_versions)
                     path = self.get_preferred_bin_path()
                     if path is not None:
                         julia_path = path
@@ -327,7 +326,7 @@ class JuliaProject:
                 self.compile_julia_project()
 
     def compile_julia_project(self):
-        from julia import Main
+        from julia import Main, Pkg
         current_path = Main.pwd()
         try:
             self._compile_julia_project()
