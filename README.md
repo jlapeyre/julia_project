@@ -124,6 +124,20 @@ console_logging=False
 * A fresh installation of julia via `jill.py` after asking if you want to download and install.
 
 
+#### Testing
+
+You can run tests like this:
+
+```shell
+pytest -p julia.pytestplugin  julia_project/tests
+```
+
+Tests that don't require a Julia installation may be run like this:
+
+```shell
+pytest --no-julia  -p julia.pytestplugin  julia_project/tests
+```
+
 #### Warning
 
 This package is very new and is neither well tested nor documented.
