@@ -122,7 +122,12 @@ class JuliaProject:
              # fh = logging.NullHandler() # probably don't need this
             return None
 
-        fh = logging.FileHandler(os.path.join(self.package_path, self.name + '.log'))
+        result = self._getenv("LOG_PATH")
+        if result:
+            self.log_file_path = result
+        else:
+            self.log_file_path = self.name + '.log'
+        fh = logging.FileHandler(self.log_file_path)
         logging_level = self._logging_level
         self.logger.setLevel(logging_level)
         fh.setLevel(logging_level)

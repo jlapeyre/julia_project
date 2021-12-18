@@ -109,7 +109,9 @@ console_logging=False
    Instead the value `y` or `n` is used.
 
 * `JULIA_PROJECT_COMPILE` may be set to `y` or `n`. If set, then no interactive query is done to compile a system image
-   after installing packages. Instead the value `y` or `n` is used.
+  after installing packages. Instead the value `y` or `n` is used.
+
+* `JULIA_PROJECT_LOG_PATH` may be set to the path to the log file.
 
 #### Location of julia executable
 
