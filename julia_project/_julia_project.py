@@ -342,9 +342,9 @@ class JuliaProject:
             os.remove(self.sys_image_manifest_toml)
         from julia import Pkg
         Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
-        Pkg.activate(self.sys_image_dir)
+        Pkg.activate(self.full_sys_image_dir_path)
         logger.info("Compiling: probed Project.toml path: %s", Pkg.project().path)
-        Main.cd(self.sys_image_dir)
+        Main.cd(self.full_sys_image_dir_path)
         try:
             Pkg.resolve()
         except:
