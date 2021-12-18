@@ -84,7 +84,7 @@ class JuliaProject:
 
     def get_preferred_bin_path(self):
         bin_paths = get_installed_bin_paths()
-        if len(bin_paths) == 0:
+        if bin_paths is None:
             return None
         for pref in self.preferred_julia_versions:
             bin_path = bin_paths.get(pref)
