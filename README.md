@@ -65,10 +65,10 @@ using Libdl: Libdl
 
 packages = [:PyCall, :APackage, :AnotherPackage]
 
-sysimage_path = "sys_julia_project." * Libdl.dlext,
+sysimage_path = joinpath(@__DIR__, "sys_julia_project." * Libdl.dlext)
 
 create_sysimage(packages; sysimage_path=sysimage_path,
-                precompile_execution_file="compile_exercise_script.jl")
+                precompile_execution_file=joinpath(@__DIR__, "compile_exercise_script.jl"))
 ```
 * The system image name must be "sys_julia_project.dylib", "sys_julia_project.dll", or , "sys_julia_project.so".
   The example above will choose the correct suffix.
