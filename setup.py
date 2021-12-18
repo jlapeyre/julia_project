@@ -10,6 +10,7 @@ setuptools.setup(
     description='Manage a Julia project inside a Python package',
     url='https://github.com/jlapeyre/julia_project.git',
     author='John Lapeyre',
+    license = 'MIT',
     packages=setuptools.find_packages(),
     py_modules=["julia_project", ],
     install_requires=['julia', 'jill'],
@@ -17,4 +18,10 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
     ],
+    extras_require={
+        "test": [
+            "pytest",
+            "mock",
+        ],
+    },
 )

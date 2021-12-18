@@ -92,7 +92,7 @@ console_logging=False
    relative to the top level of `mymodule`.
 * `sys_image_file_base` -- the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".so"`.
 * `env_prefix` -- Prefix for environment variables to set project options
-* `logging_level` -- if `None`, then `logging.INFO` will be used.
+* `logging_level` -- if `None` then no logging will be done. if `logging.INFO`, then detailed info will be logged
 * `console_logging` -- if `True`, then the log messages are echoed to the console.
 
 #### Environment variables

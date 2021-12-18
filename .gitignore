@@ -1,3 +1,4 @@
-julia_project/__pycache__
 venv/
 *.egg-info/
+**/Manifest.toml
+**/__pycache__/
