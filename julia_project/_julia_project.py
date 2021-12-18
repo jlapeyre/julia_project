@@ -203,7 +203,9 @@ class JuliaProject:
                         julia_path = path
                         logger.info("Fresh jill.py Julia installation found: %s.", julia_path)
                     else:
-                        logger.info("No fresh jill.py Julia installation found.")
+                        msg = "No fresh jill.py Julia installation found. Installation failed."
+                        logger.error(msg)
+                        raise FileNotFoundError(msg)
                 else:
                     logger.info("User refused installing Julia via jill.py")
 

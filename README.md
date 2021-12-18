@@ -100,7 +100,8 @@ console_logging=False
    installation directory. If no preferred version is found, but another jill-installed version is found, it will be used.
 * `sys_image_dir` -- the directory in which scripts for compiling a system image, and the system images, are found. This is
    relative to the top level of `mymodule`.
-* `sys_image_file_base` -- the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".so"`.
+* `sys_image_file_base` -- the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".ext"`,
+    where `ext` is the dynamic lib extension for your platform.
 * `env_prefix` -- Prefix for environment variables to set project options
 * `logging_level` -- if `None` then no logging will be done. if `logging.INFO`, then detailed info will be logged
 * `console_logging` -- if `True`, then the log messages are echoed to the console.
