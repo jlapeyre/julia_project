@@ -324,16 +324,25 @@ class JuliaProject:
             if self._question_results['compile']:
                 self.compile_julia_project()
 
-
     def compile_julia_project(self):
+        from julia import Main
+        current_path = Main.pwd()
+        try:
+            self._compile_julia_project()
+        except:
+            pass
+        Main.cd(current_path)
+
+    def _compile_julia_project(self):
         """
         Compile a Julia system image with all requirements for the julia project.
         """
+        from julia import Main, Pkg
         logger = self.logger
         if not os.path.isdir(self.full_sys_image_dir_path):
             msg = f"Can't find directory for compiling system image: {self.full_sys_image_dir_path}"
             raise FileNotFoundError(msg)
-        from julia import Main, Pkg
+
         if self.loaded_sys_image_path == self.sys_image_path:
             for msg in ("WARNING: Compiling system image while compiled system image is loaded.",
                         f"Consider deleting  {self.sys_image_path} and restarting python."):
