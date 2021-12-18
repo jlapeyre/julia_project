@@ -11,7 +11,7 @@ a `setup.py` and `requirements.txt` and the Python code. You create a `Project.t
 in the top level describing the Julia packages for the project. You might do
 `source ./venv`; `pip install -r requirements.txt`; `pip install -e .`.
 
-### Using julia_project
+### What julia_project does
 
 Then `import mymodule` will do the following
 
@@ -26,7 +26,11 @@ Then `import mymodule` will do the following
   a specified subdirectory of the Python project.
 * Write info about all of the above to a log file
 
-Here is a brief example.
+
+### Using julia_project to create a project
+
+Here is a brief example. See [the example directory](./examples/myjuliamod) for a complete example.
+
 
 * Include the following in a file loaded in `./mymodule/`, that is, the directory found by `import mymodule`.
 ```python
