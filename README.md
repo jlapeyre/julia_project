@@ -26,7 +26,9 @@ Then `import mymodule` will do the following
   a specified subdirectory of the Python project.
 * Write info about all of the above to a log file
 
-Here is a brief example. Include the following in your module `mymodule`.
+Here is a brief example.
+
+* Include the following in a file loaded in `./mymodule/`, that is, the directory found by `import mymodule`.
 ```python
 import os
 mymodule_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -45,12 +47,14 @@ def compile_mymodule():
     julia_project.compile_julia_project()
 ``` 
 
+* Create `./mymodule/Project.toml` for the Julia project.
+
 #### Compiling
 
-Make a folder `./sys_image/` in the top level of your Python package. Add a `Project.toml` file.
+Make a folder `./mymodule/sys_image/`. Add a file `./mymodule/sys_image/Project.toml`.
 This typically contains the same dependencies as the top-level `Project.toml`. Perhaps a few
 more or less.
-Add a script `compile_julia_project.jl`. Typical contents are
+Add a script `./mymodule/sys_image/compile_julia_project.jl`. Typical contents are
 ```julia
 using PackageCompiler
 using Libdl: Libdl
