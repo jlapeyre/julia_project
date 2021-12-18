@@ -2,3 +2,4 @@ venv/
 *.egg-info/
 **/Manifest.toml
 **/__pycache__/
+**/*.so

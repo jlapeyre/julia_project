@@ -332,6 +332,8 @@ class JuliaProject:
         except:
             pass
         Main.cd(current_path)
+        Pkg.activate(self.package_path)
+
 
     def _compile_julia_project(self):
         """
@@ -380,7 +382,6 @@ class JuliaProject:
                 raise FileNotFoundError(self.compiled_system_image)
         else:
             raise FileNotFoundError(self.compiled_system_image)
-        Pkg.activate(self.package_path) # TODO: probably use try, in order to make sure this runs
 
 
     def update(self):
