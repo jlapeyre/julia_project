@@ -239,7 +239,7 @@ class JuliaProject:
 
 
     def get_sys_image_file_name(self):
-        return self.sys_image_file_base + "-" + self.version_raw + ".so"
+        return self.sys_image_file_base + "-" + self.version_raw + julia.find_libpython.SHLIB_SUFFIX
 
 
     def set_paths(self):
@@ -250,7 +250,7 @@ class JuliaProject:
         self.sys_image_path = os.path.join(full_sys_image_dir_path, self.get_sys_image_file_name())
         self.sys_image_project_toml = os.path.join(full_sys_image_dir_path, "Project.toml")
         self.sys_image_manifest_toml = os.path.join(full_sys_image_dir_path, "Manifest.toml")
-        self.compiled_system_image = os.path.join(full_sys_image_dir_path, "sys_julia_project.so")
+        self.compiled_system_image = os.path.join(full_sys_image_dir_path, "sys_julia_project" + julia.find_libpython.SHLIB_SUFFIX)
 
 
     def start_julia(self):

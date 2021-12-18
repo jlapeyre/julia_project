@@ -26,8 +26,7 @@ Then `import mymodule` will do the following
   a specified subdirectory of the Python project.
 * Write info about all of the above to a log file
 
-Here is a brief example
-
+Here is a brief example. Include the following in your module `mymodule`.
 ```python
 import os
 mymodule_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -48,25 +47,28 @@ def compile_mymodule():
 
 #### Compiling
 
-Make a folder `./sys_image/` in the top level of your Python package. Add `Project.toml` file.
+Make a folder `./sys_image/` in the top level of your Python package. Add a `Project.toml` file.
 This typically contains the same dependencies as the top-level `Project.toml`. Perhaps a few
 more or less.
 Add a script `compile_julia_project.jl`. Typical contents are
 ```julia
 using PackageCompiler
+using Libdl: Libdl
 
-packages = [:PyCall, :APackage, :AnotherPackge]
+packages = [:PyCall, :APackage, :AnotherPackage]
 
-create_sysimage(packages; sysimage_path="sys_julia_project.so",
+sysimage_path = "sys_julia_project." * Libdl.dlext,
+
+create_sysimage(packages; sysimage_path=sysimage_path,
                 precompile_execution_file="compile_exercise_script.jl")
 ```
-The system image name must be "sys_julia_project.so".
-The precompilation can be done however you like, or not at all. The name "compile_exercise_script.jl"
-is only an example.
-After compiling, the system image file will be renamed from
-`sys_julia_project.so`, to a name that includes the version of the julia exectuable
-that built it. The latter is the file name that will be searched for the next time
-you import `mymodule`.
+* The system image name must be "sys_julia_project.dylib", "sys_julia_project.dll", or , "sys_julia_project.so".
+  The example above will choose the correct suffix.
+* `precompile_execution_file` can be whatever you like, or omitted.
+*  After compiling, the system image file will be renamed from
+   `sys_julia_project.so` (or `dll`, or `dylib`), to a name that includes the version of the julia exectuable
+   that built it. The latter is the file name that will be searched for the next time
+   you import `mymodule`.
 
 #### Arguments to JuliaProject
 
