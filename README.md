@@ -5,11 +5,12 @@ This package provides the class `JuliaProject` for managing a
 a Python package and is accessed via [pyjulia](https://github.com/JuliaPy/pyjulia) (the Python module "julia").
 
 `julia_project` is meant to provide some automation, hand holding, and error checking.
-The intended use is as follows. You want to create a Python package that calls some Julia packages
-via pyjulia. You create a directory representing the top level of a Python package, with
-a `setup.py` and `requirements.txt` and the Python code. You create a `Project.toml` file
-in the top level describing the Julia packages for the project. You might do
-`source ./venv`; `pip install -r requirements.txt`; `pip install -e .`.
+The intended use is as follows.
+You want to create a Python package that calls some Julia packages via pyjulia.
+You create a directory representing the top level of a Python package,
+with a `setup.py` and `requirements.txt` and the Python code.
+You create a `Project.toml` file in the top level describing the Julia packages for the project.
+You might do `source ./venv`; `pip install -r requirements.txt`; `pip install -e .`.
 
 ### What julia_project does
 
