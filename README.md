@@ -8,18 +8,21 @@ a Python package and is accessed via [pyjulia](https://github.com/JuliaPy/pyjuli
 The intended use is as follows.
 You want to create a Python package that calls some Julia packages via pyjulia.
 You create a directory representing the top level of a Python package,
-with a `setup.py` and `requirements.txt` and the Python code.
-You create a `Project.toml` file in the top level describing the Julia packages for the project.
-You might do `source ./venv`; `pip install -r requirements.txt`; `pip install -e .`.
+with a `setup.py` and `requirements.txt` and the Python code
+in a directory `mymodule`.
+You create a file `./mymodule/Project.toml` describing the Julia packages for the project.
+In a python source file in `./mymodule/`, you create an instance of `julia_project.JuliaProject`
+that manages the Julia project.
 
 ### What julia_project does
 
 Then `import mymodule` will do the following
 
-* Offer to download and install Julia if it is not found.
-* Check that the `julia` package is installed. I.e. check that `PyCall` is installed and built, etc.
-* Optionally download and install a Julia registry.
 * Look for the Julia executable in various places
+* Offer to download and install Julia if it is not found.
+* Check that the `julia` package is installed.
+  I.e. check that `PyCall` is installed and built, etc.
+* Optionally download and install a Julia registry.
 * Optionally load a custom Julia system image.
 * Instantiate the Julia project.
 * Provide a Python function that compiles a system image that will be found the next
@@ -27,11 +30,9 @@ Then `import mymodule` will do the following
   a specified subdirectory of the Python project.
 * Write info about all of the above to a log file
 
-
 ### Using julia_project to create a project
 
 Here is a brief example. See [the example directory](./examples/myjuliamod) for a complete example.
-
 
 * Include the following in a file loaded in `./mymodule/`, that is, the directory found by `import mymodule`.
 ```python
