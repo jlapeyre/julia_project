@@ -55,7 +55,7 @@ class JuliaProject:
         self._console_logging = console_logging
         self._question_results = {'install': None, 'compile': None}
         self._SETUP = False
-        # os.environ['PYCALL_JL_RUNTIME_PYTHON'] = shutil.which("python")
+        os.environ['PYCALL_JL_RUNTIME_PYTHON'] = shutil.which("python")
 
 
     def setup(self):
@@ -232,8 +232,9 @@ class JuliaProject:
         logger.info("Julia version_raw: %s.", info.version_raw)
         self.version_raw = info.version_raw
 
-        from julia import Main
-        Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
+        # I think we don't want this. It loads PyCall, and does it too early before we set system image and other params
+        # from julia import Main
+        # Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
         if not info.is_pycall_built():
             logger.info("PyCall not built. Installing julia module.")
             self._ask_questions()
