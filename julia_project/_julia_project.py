@@ -55,6 +55,7 @@ class JuliaProject:
         self._console_logging = console_logging
         self._question_results = {'install': None, 'compile': None}
         self._SETUP = False
+        os.environ['PYCALL_JL_RUNTIME_PYTHON'] = shutil.which("python")
 
 
     def setup(self):
@@ -324,6 +325,7 @@ class JuliaProject:
             Pkg.instantiate()
             if self._question_results['compile']:
                 self.compile_julia_project()
+
 
     def compile_julia_project(self):
         from julia import Main, Pkg
