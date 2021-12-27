@@ -12,7 +12,7 @@ import jill.utils
 from ._jill_install import get_installed_bin_paths
 
 _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py to download and install Julia?",
-              'compile' : "Compilation takes four minutes and can be done at any time.\nWould you like to compile a system image after installation?"}
+              'compile' : "Compilation may take a few, or many, minutues. You may compile now, later, or never.\nWould you like to compile a system image after installation?"}
 
 
 class JuliaProject:
@@ -243,7 +243,7 @@ class JuliaProject:
             else:
                 julia.install()
         else:
-            logger.info("PyCall is already built")
+            logger.info("PyCall is already built.")
 
         self.api = api
         self.info = info
