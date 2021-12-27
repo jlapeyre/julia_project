@@ -242,6 +242,8 @@ class JuliaProject:
                 julia.install(julia=julia_path)
             else:
                 julia.install()
+        else:
+            logger.info("PyCall is already built")
 
         self.api = api
         self.info = info
