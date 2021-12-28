@@ -220,15 +220,21 @@ class JuliaProject:
 
         def load_julia(julia_path, logger):
             if os.path.exists(julia_path):
-                api = LibJulia.load(julia=julia_path)
                 info = JuliaInfo.load(julia=julia_path)
+                api = LibJulia.from_juliainfo(info)
             else:
                 logger.info("Searching for julia in user's path")
-                api = LibJulia.load()
                 info = JuliaInfo.load()
+                api = LibJulia.load()
             return api, info
         (api, info) = load_julia(julia_path, logger)
         logger.info("Loaded LibJulia and JuliaInfo.")
+        is_compatible_python = info.is_compatible_python()
+        logger.debug("is_compatible_python = %r", is_compatible_python)
+        if not is_compatible_python:
+            raise julia.core.UnsupportedPythonError(info)
+
+
         logger.info("Julia version_raw: %s.", info.version_raw)
         self.version_raw = info.version_raw
 
