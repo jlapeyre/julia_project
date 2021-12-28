@@ -12,7 +12,10 @@ import jill.utils
 from ._jill_install import get_installed_bin_paths
 
 _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py to download and install Julia?",
-              'compile' : "Compilation may take a few, or many, minutues. You may compile now, later, or never.\nWould you like to compile a system image after installation?"}
+              'compile' :
+"""Compilation may take a few, or many, minutues. You may compile now, later, or never.
+   Would you like to compile a system image after installation?"""
+              }
 
 
 class JuliaProject:
@@ -37,6 +40,7 @@ class JuliaProject:
                  sys_image_dir="sys_image",
                  sys_image_file_base=None,
                  env_prefix="JULIA_PROJECT_",
+                 depot=False,
                  logging_level=None,
                  console_logging=False,
                  ):
@@ -49,7 +53,7 @@ class JuliaProject:
         if sys_image_file_base is None:
             sys_image_file_base = "sys_" + name
         self.sys_image_file_base = sys_image_file_base
-
+        self._depot = depot
         self.env_prefix = env_prefix
         self._logging_level = logging_level
         self._console_logging = console_logging
@@ -62,18 +66,23 @@ class JuliaProject:
         self.setup_logging()  # level=self._logging_level, console=self._console_logging)
         self.logger.info("Initing JuliaProject")
         self.read_environment_variables()
+        if self._depot:
+            os.environ["JULIA_DEPOT_PATH"] = os.path.join(self.package_path, "depot")
+            self.logger.info("Using private depot.")
         self._SETUP = True
 
 
     def run(self):
         if not self._SETUP:
             self.setup()
+        self.set_toml_paths()
         self.find_julia()
         self.init_julia_module()
-        self.set_paths()
+        self.set_sys_image_paths()
         self.start_julia()
         self.diagnostics_after_init()
         self.check_and_install_julia_packages()
+
 
     def _envname(self, env_var):
         return self.env_prefix + env_var
@@ -115,6 +124,9 @@ class JuliaProject:
                self.logger.info(f"read {self._envname('COMPILE')} = 'n'")
            else:
                raise ValueError(f"{self._envname('COMPILE')} must be y or n")
+        result = self._getenv("DEPOT")
+        if result is not None:
+            self._depot = True
 
 
     def setup_logging(self):
@@ -230,10 +242,9 @@ class JuliaProject:
         (api, info) = load_julia(julia_path, logger)
         logger.info("Loaded LibJulia and JuliaInfo.")
         is_compatible_python = info.is_compatible_python()
-        logger.debug("is_compatible_python = %r", is_compatible_python)
-        if not is_compatible_python:
+        logger.info("is_compatible_python = %r", is_compatible_python)
+        if not is_compatible_python and not self._depot:
             raise julia.core.UnsupportedPythonError(info)
-
 
         logger.info("Julia version_raw: %s.", info.version_raw)
         self.version_raw = info.version_raw
@@ -243,6 +254,8 @@ class JuliaProject:
         # Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
         if not info.is_pycall_built():
             logger.info("PyCall not built. Installing julia module.")
+            self.remove_project_manifest()
+            self.remove_sys_image_manifest()
             self._ask_questions()
             if os.path.exists(julia_path):
                 julia.install(julia=julia_path)
@@ -259,15 +272,30 @@ class JuliaProject:
         return self.sys_image_file_base + "-" + self.version_raw + julia.find_libpython.SHLIB_SUFFIX
 
 
-    def set_paths(self):
+    def set_toml_paths(self):
         self.project_toml = os.path.join(self.package_path, "Project.toml")
         self.manifest_toml = os.path.join(self.package_path, "Manifest.toml")
         full_sys_image_dir_path = os.path.join(self.package_path, self.sys_image_dir)
         self.full_sys_image_dir_path = full_sys_image_dir_path
-        self.sys_image_path = os.path.join(full_sys_image_dir_path, self.get_sys_image_file_name())
         self.sys_image_project_toml = os.path.join(full_sys_image_dir_path, "Project.toml")
         self.sys_image_manifest_toml = os.path.join(full_sys_image_dir_path, "Manifest.toml")
-        self.compiled_system_image = os.path.join(full_sys_image_dir_path, "sys_julia_project" + julia.find_libpython.SHLIB_SUFFIX)
+
+
+    def remove_project_manifest(self):
+        if os.path.isfile(self.manifest_toml):
+            self.logger.info(f"Removing {self.manifest_toml}")
+            os.remove(self.manifest_toml)
+
+
+    def remove_sys_image_manifest(self):
+        if os.path.isfile(self.sys_image_manifest_toml):
+            self.logger.info(f"Removing {self.sys_image_manifest_toml}")
+            os.remove(self.sys_image_manifest_toml)
+
+
+    def set_sys_image_paths(self):
+        self.sys_image_path = os.path.join(self.full_sys_image_dir_path, self.get_sys_image_file_name())
+        self.compiled_system_image = os.path.join(self.full_sys_image_dir_path, "sys_julia_project" + julia.find_libpython.SHLIB_SUFFIX)
 
 
     def start_julia(self):
@@ -367,8 +395,7 @@ class JuliaProject:
             msg = f"File \"{self.sys_image_project_toml}\" does not exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
-        if os.path.isfile(self.sys_image_manifest_toml):
-            os.remove(self.sys_image_manifest_toml)
+        self.remove_sys_image_manifest()
         from julia import Pkg
         Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
         Pkg.activate(self.full_sys_image_dir_path)
@@ -399,12 +426,8 @@ class JuliaProject:
 
     def update(self):
         logger = self.logger
-        if os.path.isfile(self.manifest_toml):
-            logger.info(f"Removing {self.manifest_toml}")
-            os.remove(self.manifest_toml)
-        if os.path.isfile(self.sys_image_manifest_toml):
-            logger.info(f"Removing {self.sys_image_manifest_toml}")
-            os.remove(self.sys_image_manifest_toml)
+        self.remove_project_manifest()
+        self.remove_sys_image_manifest()
         if os.path.isfile(self.sys_image_path):
             logger.info(f"Removing {self.sys_image_path}")
             os.remove(self.sys_image_path)

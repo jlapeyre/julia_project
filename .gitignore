@@ -3,3 +3,4 @@ venv/
 **/Manifest.toml
 **/__pycache__/
 **/*.so
+build/

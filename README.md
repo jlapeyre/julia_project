@@ -11,7 +11,7 @@ You create a directory representing the top level of a Python package,
 with a `setup.py` and `requirements.txt` and the Python code
 in a directory `mymodule`.
 You create a file `./mymodule/Project.toml` describing the Julia packages for the project.
-In a python source file in `./mymodule/`, you create an instance of `julia_project.JuliaProject`
+In a Python source file in `./mymodule/`, you create an instance of `julia_project.JuliaProject`
 that manages the Julia project.
 
 ### What julia_project does
@@ -20,6 +20,8 @@ Then `import mymodule` will do the following
 
 * Look for the Julia executable in various places
 * Offer to download and install Julia if it is not found.
+* Optionally create a private Julia depot for `mymodule` to avoid possible issues with
+  `PyCall` in different Python environments.
 * Check that the `julia` package is installed.
   I.e. check that `PyCall` is installed and built, etc.
 * Optionally download and install a Julia registry.
@@ -51,7 +53,7 @@ julia_project.run() # This exectutes all the management features listed above
 
 def compile_mymodule():
     julia_project.compile_julia_project()
-``` 
+```
 
 * Create `./mymodule/Project.toml` for the Julia project.
 
@@ -90,6 +92,7 @@ preferred_julia_versions = ['1.7', '1.6', 'latest'],
 sys_image_dir="sys_image",
 sys_image_file_base=None,
 env_prefix="JULIA_PROJECT_",
+depot=False,
 logging_level=None,
 console_logging=False
 ```
@@ -105,11 +108,11 @@ console_logging=False
 * `sys_image_file_base` -- the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".ext"`,
     where `ext` is the dynamic lib extension for your platform.
 * `env_prefix` -- Prefix for environment variables to set project options
+* `depot` -- If `True`, then a private depot in the `mymodule` installation directory will be used.
 * `logging_level` -- if `None` then no logging will be done. if `logging.INFO`, then detailed info will be logged
 * `console_logging` -- if `True`, then the log messages are echoed to the console.
 
 #### Environment variables
-
 
 * In the following, the prefix `JULIA_PROJECT_` may be changed with the argument `env_prefix` described above. This allows you
   to set environment variables specific to each project that do not interfere.
@@ -123,6 +126,10 @@ console_logging=False
   after installing packages. Instead the value `y` or `n` is used.
 
 * `JULIA_PROJECT_LOG_PATH` may be set to the path to the log file.
+
+* `JULIA_PROJECT_DEPOT` -- If set, then a private Julia depot will be created in a directory `depot` under the
+  `mymodule` installation directory. The depot contains all downloaded registries, packages, precompiled packages, and
+   many other data related to your julia installation.
 
 #### Location of julia executable
 
@@ -138,6 +145,20 @@ console_logging=False
 
 * A fresh installation of julia via `jill.py` after asking if you want to download and install.
 
+#### Building `PyCall`
+
+Installing and using `PyCall` is sometimes easy and sometimes confusing. The latter happens if
+you try to use `PyCall` with different Python environments. The whole issue can be avoided
+by using a private Julia "depot". You do this by passing the argument `depot=True` when initializing your `JuliaProject` instance.
+Alternatively, the user can set the environment variable `JULIA_PROJECT_DEPOT` described above.
+In this case, registries, packges, cached precompiled files, and many other things are stored
+in the installation directory of the project, e.g. `mymodule`.
+
+This is a heavy solution because it involves duplicating many files if you use Julia for other projects, with Python or not.
+But, it does not require that the end user understand anything about the status of your Julia installation, libpython, `PyCall.jl`,
+etc.
+
+Using a private depot should also allow `julia_project` to work with conda environments.
 
 #### Testing
 
