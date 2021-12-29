@@ -149,9 +149,20 @@ console_logging=False
 
 Installing and using `PyCall` is sometimes easy and sometimes confusing. The latter happens if
 you try to use `PyCall` with different Python environments. The whole issue can be avoided
-by using a private Julia "depot". You do this by passing the argument `depot=True` when initializing your `JuliaProject` instance.
-Alternatively, the user can set the environment variable `JULIA_PROJECT_DEPOT` described above.
-In this case, registries, packges, cached precompiled files, and many other things are stored
+by using a private, or Python-package-specific Julia "depot".
+Any of the following will create and use such a depot.
+
+* Enable a new depot by passing the argument `depot=True` when initializing your `JuliaProject` instance.
+
+* The user can set the environment variable `JULIA_PROJECT_DEPOT` described above.
+
+* If there is a libpython conflict detected during installation you will be prompted to
+ create a depot.
+
+The new depot will be used each time `mymodule` is imported. Remove or rename the directory `mymodule/depot`
+to prevent this.
+
+When using a new depot, registries, packges, cached precompiled files, and many other things are stored
 in the installation directory of the project, e.g. `mymodule`.
 
 This is a heavy solution because it involves duplicating many files if you use Julia for other projects, with Python or not.

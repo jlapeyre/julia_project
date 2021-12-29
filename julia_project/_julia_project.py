@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from os.path import dirname
 import shutil
 import julia
@@ -13,10 +14,25 @@ from ._jill_install import get_installed_bin_paths
 
 _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py to download and install Julia?",
               'compile' :
-"""Compilation may take a few, or many, minutues. You may compile now, later, or never.
+"""
+   I can compile a system image after installation.
+   Compilation may take a few, or many, minutues. You may compile now, later, or never.
    Would you like to compile a system image after installation?"""
               }
 
+_INCOMPATIBLE_PYTHON_QUESTION = """
+The currently running libpython is different from the one that was used to build
+the required Julia package PyCall.jl.
+They are required to be the same. I can take one of three actions:
+1. "Rebuild" PyCall to use the currently running libpython. This means PyCall will no
+ longer work with the libpython that it was previously built with.
+2. Create a Julia depot specific to this python package. All Julia packages, including PyCall,
+as well as cached, compiled code will be stored in this depot. The version of PyCall in your
+main depot (the one currently causing this problem) and the one in your new python-package-specific depot
+can coexist. This will duplicate a lot of the data stored in your main depot.
+3. Print a more detailed error message and exit.
+
+"""
 
 class JuliaProject:
     """
@@ -62,13 +78,20 @@ class JuliaProject:
         os.environ['PYCALL_JL_RUNTIME_PYTHON'] = shutil.which("python")
 
 
+    def _maybe_set_depot(self):
+        if self._depot:
+            os.environ["JULIA_DEPOT_PATH"] = os.path.join(self.package_path, "depot")
+            self.logger.info("Using private depot.")
+
     def setup(self):
         self.setup_logging()  # level=self._logging_level, console=self._console_logging)
         self.logger.info("Initing JuliaProject")
         self.read_environment_variables()
-        if self._depot:
-            os.environ["JULIA_DEPOT_PATH"] = os.path.join(self.package_path, "depot")
-            self.logger.info("Using private depot.")
+        depot_path = os.path.join(self.package_path, "depot")
+        if os.path.isdir(depot_path):
+            self._depot = True
+            self.logger.info("Found existing Python-project specific Julia depot")
+        self._maybe_set_depot()
         self._SETUP = True
 
 
@@ -230,21 +253,42 @@ class JuliaProject:
         logger = self.logger
         from julia.api import LibJulia, JuliaInfo
 
-        def load_julia(julia_path, logger):
-            if os.path.exists(julia_path):
-                info = JuliaInfo.load(julia=julia_path)
-                api = LibJulia.from_juliainfo(info)
-            else:
-                logger.info("Searching for julia in user's path")
-                info = JuliaInfo.load()
-                api = LibJulia.load()
-            return api, info
-        (api, info) = load_julia(julia_path, logger)
-        logger.info("Loaded LibJulia and JuliaInfo.")
+        if os.path.exists(julia_path):
+            info = JuliaInfo.load(julia=julia_path)
+        else:
+            logger.info("Searching for julia in user's path")
+            info = JuliaInfo.load()
+        logger.info("Loaded JuliaInfo.")
         is_compatible_python = info.is_compatible_python()
         logger.info("is_compatible_python = %r", is_compatible_python)
         if not is_compatible_python and not self._depot:
-            raise julia.core.UnsupportedPythonError(info)
+            sys.stdout.write(_INCOMPATIBLE_PYTHON_QUESTION)
+            prompt = "Choose one of 1, 2, 3: "
+            while True:
+                sys.stdout.write(prompt)
+                choice = input()
+                if choice not in ("1", "2", "3"):
+                    sys.stdout.write("Please respond with '1', '2' or '3'\n")
+                else:
+                    break
+            self._ask_questions() # ask remaining questions before working
+            if choice == '1':
+                julia.install()
+            elif choice == '2':
+                self._depot = True
+                self._maybe_set_depot()
+                if os.path.exists(julia_path): # Make new info so we pick up depot env var.
+                    info = JuliaInfo.load(julia=julia_path)
+                else:
+                    info = JuliaInfo.load()
+            else:
+                raise julia.core.UnsupportedPythonError(info)
+
+
+
+
+        api = LibJulia.from_juliainfo(info)
+        logger.info("Loaded LibJulia.")
 
         logger.info("Julia version_raw: %s.", info.version_raw)
         self.version_raw = info.version_raw
@@ -361,8 +405,8 @@ class JuliaProject:
             Pkg.resolve()
             logger.info("Pkg.instantiate()")
             Pkg.instantiate()
-            if self._question_results['compile']:
-                self.compile_julia_project()
+        if self._question_results['compile']:
+            self.compile_julia_project()
 
 
     def compile_julia_project(self):
