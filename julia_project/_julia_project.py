@@ -468,7 +468,7 @@ class JuliaProject:
             raise FileNotFoundError(self.compiled_system_image)
 
 
-    def update(self):
+    def clean(self):
         logger = self.logger
         self.remove_project_manifest()
         self.remove_sys_image_manifest()
@@ -476,9 +476,12 @@ class JuliaProject:
             logger.info(f"Removing {self.sys_image_path}")
             os.remove(self.sys_image_path)
 
+
+    def update(self):
+        self.clean()
         from julia import Pkg
         Pkg.activate(self.package_path)
-        logger.info("Updating Julia packages")
+        self.logger.info("Updating Julia packages")
         Pkg.update()
         Pkg.resolve()
         Pkg.instantiate()
