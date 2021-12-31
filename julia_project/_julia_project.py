@@ -285,8 +285,6 @@ class JuliaProject:
                 raise julia.core.UnsupportedPythonError(info)
 
 
-
-
         api = LibJulia.from_juliainfo(info)
         logger.info("Loaded LibJulia.")
 
