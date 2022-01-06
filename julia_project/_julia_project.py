@@ -64,6 +64,7 @@ class JuliaProject:
 
         self.name = name
         self.package_path = package_path
+        self.julia_path = None
         self.registry_url = registry_url
         self.preferred_julia_versions = preferred_julia_versions
         self.sys_image_dir = sys_image_dir
@@ -101,6 +102,8 @@ class JuliaProject:
             self.setup()
         self.set_toml_paths()
         self.find_julia()
+        if self.julia_path is None:
+            raise FileNotFoundError("No julia executable found")
         self.init_julia_module()
         self.set_sys_image_paths()
         self.start_julia()
@@ -200,6 +203,7 @@ class JuliaProject:
         julia_path = fj.find_one_julia()
         if julia_path:
             self.julia_path = julia_path
+            self._question_results['install'] = False
         else:
             self._ask_question('compile') # ask all questions at once
             fj.prompt_and_install_jill_julia(not_found=True)
@@ -295,10 +299,11 @@ class JuliaProject:
                     sys.stdout.write("Please respond with '1', '2' or '3'\n")
                 else:
                     break
-            self._ask_questions() # ask remaining questions before working
             if choice == '1':
+                self._ask_questions() # ask remaining questions before working
                 julia.install()
             elif choice == '2':
+                self._ask_questions()
                 self._depot = True
                 self._maybe_set_depot()
                 if os.path.exists(julia_path): # Make new info so we pick up depot env var.
