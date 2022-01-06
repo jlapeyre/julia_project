@@ -90,11 +90,14 @@ class FindJulia:
                 self.results.julia_env_var_set = True
                 if os.path.isfile(result):
                     self.results.julia_env_var_file = result
+                else:
+                    raise FileNotFoundError(f"Executable {self._julia_env_var} = {result} does not exist.")
 
         # jill-installed julia executables
         self.results.jill_julia_bin_paths = get_installed_bin_paths()
         self.results.preferred_jill_julia_executable = self.get_preferred_bin_path()
 
+        # julia executable in user path
         self.results.julia_executable_in_path = shutil.which("julia")
 
         # Other specified julia installation
@@ -126,7 +129,7 @@ class FindJulia:
                 raise FileNotFoundError("jill.py installation of julia failed")
             self.results.new_jill_installed_executable = path
         else:
-            self.want_jill_install = False
+            self.results.want_jill_install = False
 
 
     def find_one_julia(self, order=None):

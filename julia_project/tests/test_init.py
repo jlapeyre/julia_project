@@ -59,9 +59,10 @@ def test_env_var_2(gen_jp):
     assert gen_jp._question_results['install'] == True
 
 
-@mock.patch.dict(os.environ, {"MY_MOD_JULIA_PATH": "/a/julia/path"})
-def test_env_var_3(gen_jp):
-    gen_jp.setup()
-    gen_jp.find_julia()
-    assert gen_jp.julia_path == "/a/julia/path"
-    assert gen_jp._question_results['install'] == False
+# Non-existing path in env var now raises an error
+# @mock.patch.dict(os.environ, {"MY_MOD_JULIA_PATH": "/a/julia/path"})
+# def test_env_var_3(gen_jp):
+#     gen_jp.setup()
+#     gen_jp.find_julia()
+#     assert gen_jp.julia_path == "/a/julia/path"
+#     assert gen_jp._question_results['install'] == False

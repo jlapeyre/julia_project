@@ -6,6 +6,7 @@ import shutil
 import julia
 import jill.install
 import jill.utils
+from .find_julia import FindJulia
 
 # try:
 #     jill.install.get_installed_bin_path
@@ -178,74 +179,97 @@ class JuliaProject:
             self.logger.addHandler(ch)
 
 
+    def _ask_question(self, question_key):
+        if self._question_results[question_key] is None:
+            result = jill.utils.query_yes_no(_QUESTIONS[question_key])
+            self._question_results[question_key] = result
+
+
     def _ask_questions(self):
         for q in self._question_results.keys():
-            if self._question_results[q] is None:
-                result = jill.utils.query_yes_no(_QUESTIONS[q])
-                self._question_results[q] = result
+            self._ask_question(q)
 
 
+    # This is a bit complicated because we want to ask all questions at once.
     def find_julia(self):
-        logger = self.logger
-        julia_path = None
-        result = self._getenv("JULIA_PATH")
-        if result:
-            self.julia_path = result
-            self._question_results['install'] = False
-            logger.info(f"Using path {self._envname('JULIA_PATH')} = {self.julia_path}")
-            return None
+        fj = FindJulia(
+            julia_env_var = self._envname("JULIA_PATH"),
+            other_julia_installations = [os.path.join(self.package_path, "julia")]
+            )
+        self._find_julia = fj
+        julia_path = fj.find_one_julia()
+        if julia_path:
+            self.julia_path = julia_path
         else:
-            logger.info(f"Env variable {self._envname('JULIA_PATH')} not set.")
+            self._ask_question('compile') # ask all questions at once
+            fj.prompt_and_install_jill_julia(not_found=True)
+            if fj.results.want_jill_install:
+                self._question_results['install'] = True
+                julia_path = fj.results.new_jill_installed_executable
+            else:
+                self._question_results['install'] = False
 
-        # The canonical place to look for a Julia installation is ./julia/bin/julia
-        julia_directory_in_toplevel = os.path.join(self.package_path, "julia")
-        julia_executable_under_toplevel = os.path.join(julia_directory_in_toplevel, "bin", "julia")
-        if os.path.exists(julia_executable_under_toplevel) and not julia_path:
-            julia_path = julia_executable_under_toplevel
-            logger.info("Using executable from julia installation in julia project toplevel '%s'.", julia_path)
-        elif os.path.exists(julia_directory_in_toplevel):
-            if os.path.isdir(julia_directory_in_toplevel):
-                msg = "WARNING: directory ./julia/ found under toplevel, but ./julia/bin/julia not found."
-                logger.info(msg)
-                print(msg)
-            else:
-                msg = "WARNING: ./julia found under toplevel, but it is not a directory as expected."
-                logger.warn(msg)
-                print(msg)
-        else:
-            logger.info("No julia installation found at '%s'.", julia_directory_in_toplevel)
-            path = self.get_preferred_bin_path()
-            if path is not None:
-                julia_path = path
-                logger.info("jill.py Julia installation found: %s.", julia_path)
-            else:
-                logger.info("No jill.py Julia installation found.")
-        if julia_path is None:
-            which_julia = shutil.which("julia")
-            if which_julia:
-                logger.info("Found julia on PATH: %s.", which_julia)
-                julia_path = which_julia
-            else:
-                logger.info("No julia found on PATH.")
-                logger.info("Asking to install via jill.py")
-                self._ask_questions()
-                if self._question_results['install']:
-                    logger.info("Installing via jill.py")
-                    jill.install.install_julia(confirm=True) # Prompt to install Julia via jill
-                    path = self.get_preferred_bin_path()
-                    if path is not None:
-                        julia_path = path
-                        logger.info("Fresh jill.py Julia installation found: %s.", julia_path)
-                    else:
-                        msg = "No fresh jill.py Julia installation found. Installation failed."
-                        logger.error(msg)
-                        raise FileNotFoundError(msg)
-                else:
-                    logger.info("User refused installing Julia via jill.py")
 
-        if self._question_results['install'] is None:
-            self._question_results['install'] = False
-        self.julia_path = julia_path
+    # def old_find_julia(self):
+    #     logger = self.logger
+    #     julia_path = None
+    #     result = self._getenv("JULIA_PATH")
+    #     if result:
+    #         self.julia_path = result
+    #         self._question_results['install'] = False
+    #         logger.info(f"Using path {self._envname('JULIA_PATH')} = {self.julia_path}")
+    #         return None
+    #     else:
+    #         logger.info(f"Env variable {self._envname('JULIA_PATH')} not set.")
+
+    #     # The canonical place to look for a Julia installation is ./julia/bin/julia
+    #     julia_directory_in_toplevel = os.path.join(self.package_path, "julia")
+    #     julia_executable_under_toplevel = os.path.join(julia_directory_in_toplevel, "bin", "julia")
+    #     if os.path.exists(julia_executable_under_toplevel) and not julia_path:
+    #         julia_path = julia_executable_under_toplevel
+    #         logger.info("Using executable from julia installation in julia project toplevel '%s'.", julia_path)
+    #     elif os.path.exists(julia_directory_in_toplevel):
+    #         if os.path.isdir(julia_directory_in_toplevel):
+    #             msg = "WARNING: directory ./julia/ found under toplevel, but ./julia/bin/julia not found."
+    #             logger.info(msg)
+    #             print(msg)
+    #         else:
+    #             msg = "WARNING: ./julia found under toplevel, but it is not a directory as expected."
+    #             logger.warn(msg)
+    #             print(msg)
+    #     else:
+    #         logger.info("No julia installation found at '%s'.", julia_directory_in_toplevel)
+    #         path = self.get_preferred_bin_path()
+    #         if path is not None:
+    #             julia_path = path
+    #             logger.info("jill.py Julia installation found: %s.", julia_path)
+    #         else:
+    #             logger.info("No jill.py Julia installation found.")
+    #     if julia_path is None:
+    #         which_julia = shutil.which("julia")
+    #         if which_julia:
+    #             logger.info("Found julia on PATH: %s.", which_julia)
+    #             julia_path = which_julia
+    #         else:
+    #             logger.info("No julia found on PATH.")
+    #             logger.info("Asking to install via jill.py")
+    #             self._ask_questions()
+    #             if self._question_results['install']:
+    #                 logger.info("Installing via jill.py")
+    #                 jill.install.install_julia(confirm=True) # Prompt to install Julia via jill
+    #                 path = self.get_preferred_bin_path()
+    #                 if path is not None:
+    #                     julia_path = path
+    #                     logger.info("Fresh jill.py Julia installation found: %s.", julia_path)
+    #                 else:
+    #                     msg = "No fresh jill.py Julia installation found. Installation failed."
+    #                     logger.error(msg)
+    #                     raise FileNotFoundError(msg)
+    #             else:
+    #                 logger.info("User refused installing Julia via jill.py")
+    #     if self._question_results['install'] is None:
+    #         self._question_results['install'] = False
+    #     self.julia_path = julia_path
 
 
     def init_julia_module(self):
