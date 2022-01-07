@@ -12,8 +12,10 @@ setuptools.setup(
     author='John Lapeyre',
     license = 'MIT',
     packages=setuptools.find_packages(),
-    py_modules=["julia_project", ],
-    install_requires=['julia', 'jill'],
+    py_modules=["julia_project"],
+    install_requires=['julia',
+                      'find_julia @ git+https://github.com/jlapeyre/find_julia.git'
+                      ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

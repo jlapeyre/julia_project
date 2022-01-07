@@ -4,14 +4,41 @@ import sys
 from os.path import dirname
 import shutil
 import julia
-import jill.install
-import jill.utils
-from .find_julia import FindJulia
+#import jill.utils
+import find_julia
 
-# try:
-#     jill.install.get_installed_bin_path
-# except:
-from ._jill_install import get_installed_bin_paths
+def query_yes_no(question, default="yes"):
+    """Ask a yes/no question via input() and return their answer.
+
+    "question" is a string that is presented to the user.
+    "default" is the presumed answer if the user just hits <Enter>.
+        It must be "yes" (the default), "no" or None (meaning
+        an answer is required of the user).
+
+    The "answer" return value is True for "yes" or False for "no".
+    """
+    valid = {"yes": True, "y": True, "ye": True,
+             "no": False, "n": False}
+    if default is None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError("invalid default answer: '%s'" % default)
+
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = input().lower()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            sys.stdout.write("Please respond with 'yes' or 'no' "
+                             "(or 'y' or 'n').\n")
+
 
 _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py to download and install Julia?",
               'compile' :
@@ -127,15 +154,15 @@ class JuliaProject:
         return os.getenv(self.env_prefix + env_var)
 
 
-    def get_preferred_bin_path(self):
-        bin_paths = get_installed_bin_paths()
-        if bin_paths is None:
-            return None
-        for pref in self.preferred_julia_versions:
-            bin_path = bin_paths.get(pref)
-            if bin_path:
-                return bin_path
-        return next(iter(bin_paths.values())) # Take the first one
+    # def get_preferred_bin_path(self):
+    #     bin_paths = find_julia.get_installed_bin_paths()
+    #     if bin_paths is None:
+    #         return None
+    #     for pref in self.preferred_julia_versions:
+    #         bin_path = bin_paths.get(pref)
+    #         if bin_path:
+    #             return bin_path
+    #     return next(iter(bin_paths.values())) # Take the first one
 
 
     def read_environment_variables(self):
@@ -199,7 +226,7 @@ class JuliaProject:
 
     def _ask_question(self, question_key):
         if self._question_results[question_key] is None:
-            result = jill.utils.query_yes_no(_QUESTIONS[question_key])
+            result = query_yes_no(_QUESTIONS[question_key])
             self._question_results[question_key] = result
 
 
@@ -210,7 +237,7 @@ class JuliaProject:
 
     # This is a bit complicated because we want to ask all questions at once.
     def find_julia(self):
-        fj = FindJulia(
+        fj = find_julia.FindJulia(
             julia_env_var = self._envname("JULIA_PATH"),
             other_julia_installations = [os.path.join(self.package_path, "julia")]
             )
