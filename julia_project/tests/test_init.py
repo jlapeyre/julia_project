@@ -27,7 +27,7 @@ def test_min_init():
     assert jp._console_logging == False
     assert jp._logging_level == None
     assert jp._SETUP == False
-    assert jp._question_results == {'install': None, 'compile': None}
+    assert jp._question_results == {'install': None, 'compile': None, 'depot': None}
 
 
 @pytest.fixture
@@ -50,6 +50,7 @@ def test_env_var_1(gen_jp):
     gen_jp.setup()
     assert gen_jp._question_results['compile'] == True
     assert gen_jp._question_results['install'] == False
+    assert gen_jp._question_results['depot'] == None
 
 
 @mock.patch.dict(os.environ, {"MY_MOD_COMPILE": "n", "MY_MOD_INSTALL_JULIA": "y"})
@@ -57,6 +58,15 @@ def test_env_var_2(gen_jp):
     gen_jp.setup()
     assert gen_jp._question_results['compile'] == False
     assert gen_jp._question_results['install'] == True
+    assert gen_jp._question_results['depot'] == None
+
+
+@mock.patch.dict(os.environ, {"MY_MOD_COMPILE": "n", "MY_MOD_INSTALL_JULIA": "n", "MY_MOD_DEPOT": "y" })
+def test_env_var_2(gen_jp):
+    gen_jp.setup()
+    assert gen_jp._question_results['compile'] == False
+    assert gen_jp._question_results['install'] == False
+    assert gen_jp._question_results['depot'] == True
 
 
 # Non-existing path in env var now raises an error
