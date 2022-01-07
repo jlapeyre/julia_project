@@ -70,6 +70,7 @@ class FindJulia:
 
 
     def get_preferred_bin_path(self):
+        self.results.jill_julia_bin_paths = get_installed_bin_paths()
         if self.results.jill_julia_bin_paths is None:
             return None
         for pref in self.preferred_julia_versions:
@@ -94,7 +95,6 @@ class FindJulia:
                     raise FileNotFoundError(f"Executable {self._julia_env_var} = {result} does not exist.")
 
         # jill-installed julia executables
-        self.results.jill_julia_bin_paths = get_installed_bin_paths()
         self.results.preferred_jill_julia_executable = self.get_preferred_bin_path()
 
         # julia executable in user path
