@@ -135,7 +135,7 @@ console_logging=False
 
 `JuliaProject` will look in the following locations, in order
 
-* The environment variabel `JULIA_PROJECT_JULIA_PATH`. With `JULIA_PROJECT_` optionally replaced by `env_prefix` described above.
+* The environment variable `JULIA_PROJECT_JULIA_PATH`. With `JULIA_PROJECT_` optionally replaced by `env_prefix` described above.
 
 * In the package top level for the installation `./julia/`
 
@@ -155,6 +155,8 @@ Any of the following will create and use such a depot.
 * Enable a new depot by passing the argument `depot=True` when initializing your `JuliaProject` instance.
 
 * The user can set the environment variable `JULIA_PROJECT_DEPOT` described above.
+
+* If no `PyCall.jl` is found, the option to create the package-specific depot will be given.
 
 * If there is a libpython conflict detected during installation you will be prompted to
  create a depot.
