@@ -18,7 +18,15 @@ _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py t
 """
    I can compile a system image after installation.
    Compilation may take a few, or many, minutues. You may compile now, later, or never.
-   Would you like to compile a system image after installation?"""
+   Would you like to compile a system image after installation?""",
+              'depot' :
+"""
+  You can install all of the Julia packages and package information in a module-specific "depot",
+  that is, one specific to this Python module. This may allow you to use multiple Python installation
+  locations with Julia.
+  Or you can install packages in the standard per-user Julia "depot".
+  Would you like to use a python-module-specific depot for Julia packages?
+"""
               }
 
 _INCOMPATIBLE_PYTHON_QUESTION = """
@@ -57,7 +65,7 @@ class JuliaProject:
                  sys_image_dir="sys_image",
                  sys_image_file_base=None,
                  env_prefix="JULIA_PROJECT_",
-                 depot=False,
+                 depot=None,
                  logging_level=None,
                  console_logging=False,
                  ):
@@ -71,19 +79,19 @@ class JuliaProject:
         if sys_image_file_base is None:
             sys_image_file_base = "sys_" + name
         self.sys_image_file_base = sys_image_file_base
-        self._depot = depot
         self.env_prefix = env_prefix
         self._logging_level = logging_level
         self._console_logging = console_logging
-        self._question_results = {'install': None, 'compile': None}
+        self._question_results = {'install': None, 'compile': None, 'depot': depot}
         self._SETUP = False
         os.environ['PYCALL_JL_RUNTIME_PYTHON'] = shutil.which("python")
 
 
     def _maybe_set_depot(self):
-        if self._depot:
+        if self._question_results['depot']:
             os.environ["JULIA_DEPOT_PATH"] = os.path.join(self.package_path, "depot")
             self.logger.info("Using private depot.")
+
 
     def setup(self):
         self.setup_logging()  # level=self._logging_level, console=self._console_logging)
@@ -91,7 +99,7 @@ class JuliaProject:
         self.read_environment_variables()
         depot_path = os.path.join(self.package_path, "depot")
         if os.path.isdir(depot_path):
-            self._depot = True
+            self._question_results['depot'] = True
             self.logger.info("Found existing Python-project specific Julia depot")
         self._maybe_set_depot()
         self._SETUP = True
@@ -152,8 +160,15 @@ class JuliaProject:
            else:
                raise ValueError(f"{self._envname('COMPILE')} must be y or n")
         result = self._getenv("DEPOT")
-        if result is not None:
-            self._depot = True
+        if result:
+           if result == 'y':
+               self._question_results['depot'] = True
+               self.logger.info(f"read {self._envname('DEPOT')} = 'y'")
+           elif result == 'n':
+               self._question_results['depot'] = False
+               self.logger.info(f"read {self._envname('DEPOT')} = 'n'")
+           else:
+               raise ValueError(f"{self._envname('DEPOT')} must be y or n")
 
 
     def setup_logging(self):
@@ -205,75 +220,15 @@ class JuliaProject:
             self.julia_path = julia_path
             self._question_results['install'] = False
         else:
-            self._ask_question('compile') # ask all questions at once
+            self._ask_question('depot') # ask all questions at once
+            self._maybe_set_depot()
+            self._ask_question('compile')
             fj.prompt_and_install_jill_julia(not_found=True)
             if fj.results.want_jill_install:
                 self._question_results['install'] = True
                 julia_path = fj.results.new_jill_installed_executable
             else:
                 self._question_results['install'] = False
-
-
-    # def old_find_julia(self):
-    #     logger = self.logger
-    #     julia_path = None
-    #     result = self._getenv("JULIA_PATH")
-    #     if result:
-    #         self.julia_path = result
-    #         self._question_results['install'] = False
-    #         logger.info(f"Using path {self._envname('JULIA_PATH')} = {self.julia_path}")
-    #         return None
-    #     else:
-    #         logger.info(f"Env variable {self._envname('JULIA_PATH')} not set.")
-
-    #     # The canonical place to look for a Julia installation is ./julia/bin/julia
-    #     julia_directory_in_toplevel = os.path.join(self.package_path, "julia")
-    #     julia_executable_under_toplevel = os.path.join(julia_directory_in_toplevel, "bin", "julia")
-    #     if os.path.exists(julia_executable_under_toplevel) and not julia_path:
-    #         julia_path = julia_executable_under_toplevel
-    #         logger.info("Using executable from julia installation in julia project toplevel '%s'.", julia_path)
-    #     elif os.path.exists(julia_directory_in_toplevel):
-    #         if os.path.isdir(julia_directory_in_toplevel):
-    #             msg = "WARNING: directory ./julia/ found under toplevel, but ./julia/bin/julia not found."
-    #             logger.info(msg)
-    #             print(msg)
-    #         else:
-    #             msg = "WARNING: ./julia found under toplevel, but it is not a directory as expected."
-    #             logger.warn(msg)
-    #             print(msg)
-    #     else:
-    #         logger.info("No julia installation found at '%s'.", julia_directory_in_toplevel)
-    #         path = self.get_preferred_bin_path()
-    #         if path is not None:
-    #             julia_path = path
-    #             logger.info("jill.py Julia installation found: %s.", julia_path)
-    #         else:
-    #             logger.info("No jill.py Julia installation found.")
-    #     if julia_path is None:
-    #         which_julia = shutil.which("julia")
-    #         if which_julia:
-    #             logger.info("Found julia on PATH: %s.", which_julia)
-    #             julia_path = which_julia
-    #         else:
-    #             logger.info("No julia found on PATH.")
-    #             logger.info("Asking to install via jill.py")
-    #             self._ask_questions()
-    #             if self._question_results['install']:
-    #                 logger.info("Installing via jill.py")
-    #                 jill.install.install_julia(confirm=True) # Prompt to install Julia via jill
-    #                 path = self.get_preferred_bin_path()
-    #                 if path is not None:
-    #                     julia_path = path
-    #                     logger.info("Fresh jill.py Julia installation found: %s.", julia_path)
-    #                 else:
-    #                     msg = "No fresh jill.py Julia installation found. Installation failed."
-    #                     logger.error(msg)
-    #                     raise FileNotFoundError(msg)
-    #             else:
-    #                 logger.info("User refused installing Julia via jill.py")
-    #     if self._question_results['install'] is None:
-    #         self._question_results['install'] = False
-    #     self.julia_path = julia_path
 
 
     def init_julia_module(self):
@@ -285,11 +240,21 @@ class JuliaProject:
             info = JuliaInfo.load(julia=julia_path)
         else:
             logger.info("Searching for julia in user's path")
-            info = JuliaInfo.load()
+            info = JuliaInfo.load()  # This branch should never be taken
         logger.info("Loaded JuliaInfo.")
         is_compatible_python = info.is_compatible_python()
+        is_pycall_built = info.is_pycall_built()
+        logger.info("is_pycall_built = %r", is_pycall_built)
         logger.info("is_compatible_python = %r", is_compatible_python)
-        if not is_compatible_python and not self._depot:
+        if not is_pycall_built:
+            self._ask_questions()
+
+        self._maybe_set_depot()
+        if os.path.exists(julia_path): # Make new info so we pick up depot env var in case depot changed
+            info = JuliaInfo.load(julia=julia_path)
+        else:
+            info = JuliaInfo.load() # This branch should never be taken
+        if is_pycall_built and not is_compatible_python and not self._question_results['depot']:
             sys.stdout.write(_INCOMPATIBLE_PYTHON_QUESTION)
             prompt = "Choose one of 1, 2, 3: "
             while True:
@@ -300,11 +265,12 @@ class JuliaProject:
                 else:
                     break
             if choice == '1':
+                self._question_results['depot'] = False
                 self._ask_questions() # ask remaining questions before working
                 julia.install()
             elif choice == '2':
+                self._question_results['depot'] = True
                 self._ask_questions()
-                self._depot = True
                 self._maybe_set_depot()
                 if os.path.exists(julia_path): # Make new info so we pick up depot env var.
                     info = JuliaInfo.load(julia=julia_path)
@@ -320,9 +286,6 @@ class JuliaProject:
         logger.info("Julia version_raw: %s.", info.version_raw)
         self.version_raw = info.version_raw
 
-        # I think we don't want this. It loads PyCall, and does it too early before we set system image and other params
-        # from julia import Main
-        # Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
         if not info.is_pycall_built():
             logger.info("PyCall not built. Installing julia module.")
             self.remove_project_manifest()
@@ -422,6 +385,7 @@ class JuliaProject:
             print("Julia packages not installed, installing...")
             logger.info("Julia packages not installed or found.")
             self._question_results['install'] = False
+            self._question_results['depot'] = False # Too late to use depot
             self._ask_questions()
             if self.registry_url:
                 logger.info(f"Installing registry from {self.registry_url}.")
