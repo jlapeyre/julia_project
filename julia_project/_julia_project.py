@@ -226,7 +226,7 @@ class JuliaProject:
             fj.prompt_and_install_jill_julia(not_found=True)
             if fj.results.want_jill_install:
                 self._question_results['install'] = True
-                julia_path = fj.results.new_jill_installed_executable
+                self.julia_path = fj.results.new_jill_installed_executable
             else:
                 self._question_results['install'] = False
 
