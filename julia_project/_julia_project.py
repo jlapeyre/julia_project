@@ -22,8 +22,8 @@ _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py t
               'depot' :
 """
   You can install all of the Julia packages and package information in a module-specific "depot",
-  that is, one specific to this Python module. This may allow you to use multiple Python installation
-  locations with Julia.
+  that is, one specific to this Python module. This may allow you to use Julia with python projects
+  that have different Python installation locations.
   Or you can install packages in the standard per-user Julia "depot".
   Would you like to use a python-module-specific depot for Julia packages?
 """
