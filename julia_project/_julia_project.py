@@ -13,16 +13,17 @@ from ._utils import query_yes_no
 _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py to download and install Julia?",
               'compile' :
 """
-   I can compile a system image after installation.
-   Compilation may take a few, or many, minutues. You may compile now, later, or never.
-   Would you like to compile a system image after installation?""",
+I can compile a system image after installation.
+Compilation may take a few, or many, minutues. You may compile now, later, or never.
+Would you like to compile a system image after installation?
+""",
               'depot' :
 """
-  You can install all of the Julia packages and package information in a module-specific "depot",
-  that is, one specific to this Python module. This may allow you to use Julia with python projects
-  that have different Python installation locations.
-  Or you can install packages in the standard per-user Julia "depot".
-  Would you like to use a python-module-specific depot for Julia packages?
+You can install all of the Julia packages and package information in a module-specific "depot",
+that is, one specific to this Python module. This may allow you to use Julia with python projects
+that have different Python installation locations.
+Or you can install packages in the standard per-user Julia "depot".
+Would you like to use a python-module-specific depot for Julia packages?
 """
               }
 
