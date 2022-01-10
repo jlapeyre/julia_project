@@ -13,8 +13,8 @@ setuptools.setup(
     license = 'MIT',
     packages=setuptools.find_packages(),
     py_modules=["julia_project"],
-    install_requires=['julia',
-                      'find_julia @ git+https://github.com/jlapeyre/find_julia.git'
+    install_requires=['julia>=0.2',
+                      'find_julia>=0.0.2'
                       ],
     classifiers=[
         "Programming Language :: Python :: 3",
