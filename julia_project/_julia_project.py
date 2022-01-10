@@ -232,9 +232,9 @@ class JuliaProject:
     # This is a bit complicated because we want to ask all questions at once.
     def find_julia(self):
         if self._question_results['install'] == True:
-            confirm_install = False
-        else:
             confirm_install = True
+        else:
+            confirm_install = False
         fj = find_julia.FindJulia(
             julia_env_var = self._envname("JULIA_PATH"),
             other_julia_installations = [os.path.join(self.package_path, "julia")],
