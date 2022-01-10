@@ -231,9 +231,14 @@ class JuliaProject:
 
     # This is a bit complicated because we want to ask all questions at once.
     def find_julia(self):
+        if self._question_results['install'] == True:
+            confirm_install = False
+        else:
+            confirm_install = True
         fj = find_julia.FindJulia(
             julia_env_var = self._envname("JULIA_PATH"),
-            other_julia_installations = [os.path.join(self.package_path, "julia")]
+            other_julia_installations = [os.path.join(self.package_path, "julia")],
+            confirm_install = confirm_install
             )
         self._find_julia = fj
         julia_path = fj.find_one_julia()
