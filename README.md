@@ -132,9 +132,10 @@ console_logging=False
 
 * `JULIA_PROJECT_LOG_PATH` may be set to the path to the log file.
 
-* `JULIA_PROJECT_DEPOT` -- If set, then a private Julia depot will be created in a directory `depot` under the
+* `JULIA_PROJECT_DEPOT` -- If set to `y`, then a private Julia depot will be created in a directory `depot` under the
   `mymodule` installation directory. The depot contains all downloaded registries, packages, precompiled packages, and
-   many other data related to your julia installation.
+   many other data related to your julia installation. Set to `n` to use the standard depot. If it is unset, you may
+   be prompted for your choice.
 
 #### Location of julia executable
 
