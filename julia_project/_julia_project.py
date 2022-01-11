@@ -318,10 +318,12 @@ class JuliaProject:
 
     def set_toml_paths(self):
         self.project_toml = os.path.join(self.package_path, "Project.toml")
+        self.julia_project_toml = os.path.join(self.package_path, "JuliaProject.toml")
         self.manifest_toml = os.path.join(self.package_path, "Manifest.toml")
         full_sys_image_dir_path = os.path.join(self.package_path, self.sys_image_dir)
         self.full_sys_image_dir_path = full_sys_image_dir_path
         self.sys_image_project_toml = os.path.join(full_sys_image_dir_path, "Project.toml")
+        self.sys_image_julia_project_toml = os.path.join(full_sys_image_dir_path, "JuliaProject.toml")
         self.sys_image_manifest_toml = os.path.join(full_sys_image_dir_path, "Manifest.toml")
 
 
@@ -373,8 +375,8 @@ class JuliaProject:
         logger.info("Probed julia command: %s", julia_cmd)
 
         from julia import Pkg
-        if not os.path.isfile(self.project_toml):
-            msg = f"File \"{self.project_toml}\" does not exist."
+        if not (os.path.isfile(self.project_toml) or os.path.isfile(self.julia_project_toml)):
+            msg = f"Neither \"{self.project_toml}\" nor \"{self.julia_project_toml}\" exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
         # Activate the Julia project
@@ -436,8 +438,8 @@ class JuliaProject:
                         f"Consider deleting  {self.sys_image_path} and restarting python."):
                 print(msg)
                 logger.warn(msg)
-        if not os.path.isfile(self.sys_image_project_toml):
-            msg = f"File \"{self.sys_image_project_toml}\" does not exist."
+        if not (os.path.isfile(self.sys_image_project_toml) or os.path.isfile(self.sys_image_julia_project_toml)):
+            msg = f"Neither \"{self.sys_image_project_toml}\" nor \"{self.sys_iamge_julia_project_toml}\" exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
         self.remove_sys_image_manifest()

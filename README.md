@@ -60,11 +60,11 @@ def compile_mymodule():
     julia_project.compile_julia_project()
 ```
 
-* Create `./mymodule/Project.toml` for the Julia project.
+* Create `./mymodule/Project.toml` (or `./mymodule/JuliaProject.toml`)  for the Julia project.
 
 #### Compiling
 
-Make a folder `./mymodule/sys_image/`. Add a file `./mymodule/sys_image/Project.toml`.
+Make a folder `./mymodule/sys_image/`. Add a file `./mymodule/sys_image/Project.toml` (or `./mymodule/sys_image/JuliaProject.toml`)
 This typically contains the same dependencies as the top-level `Project.toml`. Perhaps a few
 more or less.
 Add a script `./mymodule/sys_image/compile_julia_project.jl`. Typical contents are
