@@ -14,6 +14,11 @@ You create a file `./mymodule/Project.toml` describing the Julia packages for th
 In a Python source file in `./mymodule/`, you create an instance of `julia_project.JuliaProject`
 that manages the Julia project.
 
+### Installing
+
+`julia_project` is in pypi; it can be installed via `pip install julia_project`. It is meant to be used as a library
+in other projects.
+
 ### What julia_project does
 
 Then `import mymodule` will do the following
