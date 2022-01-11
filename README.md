@@ -4,6 +4,11 @@ This package provides the class `JuliaProject` for managing a
 [Julia project](https://pkgdocs.julialang.org/v1.7/environments/) that lives inside
 a Python package and is accessed via [pyjulia](https://github.com/JuliaPy/pyjulia) (the Python module "julia").
 
+
+`julia_project` is in pypi; it can be installed via `pip install julia_project`. It is meant to be used as a library
+in other projects.
+
+
 `julia_project` is meant to provide some automation, hand holding, and error checking.
 The intended use is as follows.
 You want to create a Python package that calls some Julia packages via pyjulia.
@@ -13,11 +18,6 @@ in a directory `mymodule`.
 You create a file `./mymodule/Project.toml` describing the Julia packages for the project.
 In a Python source file in `./mymodule/`, you create an instance of `julia_project.JuliaProject`
 that manages the Julia project.
-
-### Installing
-
-`julia_project` is in pypi; it can be installed via `pip install julia_project`. It is meant to be used as a library
-in other projects.
 
 ### What julia_project does
 
