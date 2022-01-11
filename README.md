@@ -23,7 +23,7 @@ that manages the Julia project.
 
 Then `import mymodule` will do the following
 
-* Look for the Julia executable in various places
+* Look for the Julia executable in various places using [`find_julia`](https://github.com/jlapeyre/find_julia)
 * Offer to download and install Julia if it is not found.
 * Optionally create a private Julia depot for `mymodule` to avoid possible issues with
   `PyCall` in different Python environments.
