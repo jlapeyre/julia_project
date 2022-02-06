@@ -8,8 +8,46 @@ a Python package and is accessed via [pyjulia](https://github.com/JuliaPy/pyjuli
 `julia_project` is in pypi; it can be installed via `pip install julia_project`. It is meant to be used as a library
 in other projects.
 
+`julia_project` is meant to provide some automation, hand holding, and error checking in managing
+a Julia dependency in a Python package.
 
-`julia_project` is meant to provide some automation, hand holding, and error checking.
+## For the user of a package that uses `julia_project`
+
+Suppose the Python module `mymodule` uses `julia_project` to manage its Julia dependency.
+The user of `mymodule` can do the following to import mymodule and install and initialize
+the Julia project that `mymodule` depends on.
+
+```python
+import mymodule
+mymodule.project.ensure_init()
+```
+
+The author of `mymodule` may have already called `ensure_init` as step peformed when
+`import mymodule` is executed. In this case, calling `ensure_init` again is a no-op.
+
+To compile, or recompile, the Julia project, the user calls `mymodule.project.compile()`.
+The compiled Julia system image will be used the next time `mymodule` is imported, speeding up
+both startup and the first execution of code.
+
+Calling `mymodule.project.clean()` removes the compiled system image and some other files.
+This will force again resolving the Julia package requirements on the next `import mymodule`.
+
+Calling `mymodule.project.update()` checks for compatible updates of Julia packages that
+are direct or indirect dependencies of `mymodule`, and performs the update.
+
+If you want to handle installation and initialization of the Julia project and packages yourself, you can do
+```python
+import mymodule
+mymodule.project.disable_init()
+```
+Then calls to `ensure_init`, explicit or otherwise will do nothing.
+
+If someone else has called `mymodule.project.disable_init()` and you want to override it, you
+can call `mymodule.project.enable_init()`.
+
+
+## For the author of a package using `julia_project`
+
 The intended use is as follows.
 You want to create a Python package that calls some Julia packages via pyjulia.
 You create a directory representing the top level of a Python package,
@@ -21,7 +59,7 @@ that manages the Julia project.
 
 ### What julia_project does
 
-Then `import mymodule` will do the following
+Then `import mymodule; mymodule.project.ensure_init()` will do the following
 
 * Look for the Julia executable in various places using [`find_julia`](https://github.com/jlapeyre/find_julia)
 * Offer to download and install Julia if it is not found.
@@ -54,10 +92,8 @@ julia_project = JuliaProject(
     logging_level = logging.INFO # or WARN, or ERROR
     )
 
-julia_project.run() # This exectutes all the management features listed above
-
-def compile_mymodule():
-    julia_project.compile_julia_project()
+# If the following is omitted, the user of mymodule must call it explicitly.
+julia_project.ensure_init() # This exectutes all the management features listed above
 ```
 
 * Create `./mymodule/Project.toml` (or `./mymodule/JuliaProject.toml`)  for the Julia project.
@@ -86,6 +122,7 @@ create_sysimage(packages; sysimage_path=sysimage_path,
    `sys_julia_project.so` (or `dll`, or `dylib`), to a name that includes the version of the julia exectuable
    that built it. The latter is the file name that will be searched for the next time
    you import `mymodule`.
+* The project is compiled by calling the method `JuliaProject.compile` either explicitly or during the installation.
 
 #### Arguments to JuliaProject
 
@@ -97,6 +134,7 @@ preferred_julia_versions = ['1.7', '1.6', 'latest'],
 sys_image_dir="sys_image",
 sys_image_file_base=None,
 env_prefix="JULIA_PROJECT_",
+post_init_hook=None,
 depot=False,
 logging_level=None,
 console_logging=False
@@ -114,6 +152,7 @@ console_logging=False
     where `ext` is the dynamic lib extension for your platform.
 * `env_prefix` -- Prefix for environment variables to set project options
 * `depot` -- If `True`, then a private depot in the `mymodule` installation directory will be used.
+* `post_init_hook` -- A function that will be called immediately before `ensure_init` returns.
 * `logging_level` -- if `None` then no logging will be done. if `logging.INFO`, then detailed info will be logged
 * `console_logging` -- if `True`, then the log messages are echoed to the console.
 

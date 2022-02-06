@@ -1,39 +1,31 @@
 import julia
 import logging
+import importlib
 
 from julia_project import JuliaProject
 
+# The top-level directory of the mymodule installation must be
+# passed when constructing JuliaProject. We compute this path here.
 import os
 myjuliamod_path = os.path.dirname(os.path.abspath(__file__))
 
-julia_project = JuliaProject(
+
+# You may supply a hook to run after JuliaProject.ensure_init is called.
+# For example, here we import hellomod into myjuliamod. The effect is
+# as if we had added the line `import .hellomod` to mymjuliamod.__init__.
+# We did not do the latter, because that would require checking and
+# initializing Julia upon importing myjuliamod. The package author
+# (i.e. author of myjuliamod) may wish to avoid the latter.
+def _after_init_func():
+    importlib.import_module('.hellomod', 'myjuliamod')
+
+
+project = JuliaProject(
     name="myjuliamod",
     package_path=myjuliamod_path,
     preferred_julia_versions = ['1.7', '1.6', 'latest'],
-    env_prefix = 'MYJULIAMOD_',
+    env_prefix = 'MYJULIAMOD_', # env variables prefixed with this may control JuliaProject
     logging_level = logging.INFO, # or logging.WARN,
-    console_logging=False
+    console_logging=False,
+    post_init_hook=_after_init_func, # Run this after ensure_init
 )
-
-julia_project.run()
-
-# logger = julia_project.logger
-
-# Directory of Julia source files that may be loaded via Python
-julia_src_dir = julia_project.julia_src_dir
-
-def compile_myjuliamod():
-    """
-    Compile a system image for `myjuliamod` in the subdirectory `./sys_image/`. This
-    system image will be loaded the next time you import `myjuliamod`.
-    """
-    julia_project.compile_julia_project()
-
-
-def update_myjuliamod():
-    """
-    Remove possible stale Manifest.toml files and compiled system image.
-    Update Julia packages and rebuild Manifest.toml file.
-    Before compiling, it's probably a good idea to call this method, then restart Python.
-    """
-    julia_project.update()

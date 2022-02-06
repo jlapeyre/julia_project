@@ -1,25 +1,34 @@
 ## Example Python package using `julia_project`
 
-The first time you do
+The code in `myjuliamod` is commented to document some hard-coded
+configuration options that the author of the module can choose.
+
+Importing `myjuliamod` imports an instance of `JuliaProject` as `project`.
+The latter may be used to initialize the Julia dependencies.
 ```python
 import myjuliamod
+myjuliamod.project.ensure_init()
 ```
-The Julia packages should be installed and optionally compiled.
 
+In the source to `myjuliamod` you can see how calling `ensure_init` also loads
+additional Python code and imports symbols into `myjuliamod`.
 
-To test, try this
+`myjuliamod` demonstrates how
+the author of a module can provide for automatically calling
+`ensure_init` when a submodule is imported.
 ```python
-[1]: from myjuliamod import hello
+[1]: from myjuliamod import hellomod
   Activating project at `~/code/github/username/julia_project/examples/myjuliamod/myjuliamod`
 
-In [2]: hello()
+In [2]: myjuliamod.hello()
 Out[2]: 'Hello, myjuliamod'
 ```
 
 ## Main project Project.toml
 
-The mython module `myjuliaod` depends only on the package `Example.jl`. The file `Project.toml` is created by
-doing `Pkg.activate(".")` in the appropriate directory and then `Pkg.add("Example")`.
+The only Julia dependency of the python module `myjuliamod` is the package `Example.jl`.
+The file `Project.toml` was created by doing `Pkg.activate(".")` in the
+appropriate directory and then `Pkg.add("Example")`.
 
 
 ## Project for compilation
