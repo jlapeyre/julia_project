@@ -1,2 +1,7 @@
 [deps]
 Example = "7876af07-990d-54b4-ab0e-23690620f79a"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
+
+[compat]
+julia = "1.6"

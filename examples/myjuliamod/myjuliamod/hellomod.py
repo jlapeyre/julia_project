@@ -1,5 +1,6 @@
 import sys
 
+# Import the instance of JuliaProject
 from ._julia_project import project
 
 # The user may have already called this line to initialize the Julia environment.
@@ -9,11 +10,20 @@ from ._julia_project import project
 # Omit this line if you want to force the user to call ensure_init explicitly.
 project.ensure_init()
 
-from julia import Example
+
+# Import a Julia module. This works with either julia/PyCall or juliacall/PythonCall
+Example = project.simple_import("Example")
+
+# Alternatively, For julia/PyCall
+# from julia import Example
+
+# And for juliacall/PythonCall
+# import juliacall
+# juliacall.using(locals(), module="Example", prefix="")
+
 
 def hello():
     return Example.hello("myjuliamod")
-
 
 # You may want to do something like the following.
 # This has the same effect as putting the following line in __init__.py:

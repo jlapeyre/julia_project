@@ -9,7 +9,7 @@ import pytest
 @mock.patch.dict(os.environ, {"MY_MOD_COMPILE": "n", "MY_MOD_INSTALL_JULIA": "n"})
 def run_proj():
     jp = JuliaProject(name="mymod", package_path="./julia_project/tests/project", env_prefix='MY_MOD_', logging_level=logging.INFO)
-    jp.run()
+    jp.ensure_init()
     return jp
 
 

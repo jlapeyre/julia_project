@@ -20,13 +20,13 @@ def test_min_init():
     jp = JuliaProject(name="mymod", package_path=".")
     assert jp.name == "mymod"
     assert jp.package_path ==  "."
-    assert jp.env_prefix == "JULIA_PROJECT_"
+#    assert jp.env_prefix == "JULIA_PROJECT_"
     assert jp.registry_url is None
     assert jp.sys_image_file_base == 'sys_mymod'
     assert jp.sys_image_dir == 'sys_image'
     assert jp._console_logging == False
     assert jp._logging_level == None
-    assert jp._SETUP == False
+    assert jp._init_flags['initialized'] == False
     assert jp._question_results == {'install': None, 'compile': None, 'depot': None}
 
 

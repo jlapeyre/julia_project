@@ -1,4 +1,8 @@
+Portions of the source are adapted from PythonCall.jl
+Copyright (c) 2021 cjdoris
+
 MIT License
+
 
 Copyright (c) 2021 John Lapeyre
 

@@ -10,6 +10,8 @@ import myjuliamod
 myjuliamod.project.ensure_init()
 ```
 
+`ensure_init` takes an optional keyword argument `depot`. If `depot=True`,
+then a Julia depot (package cache) specific to `myjuliamod` will be used.
 In the source to `myjuliamod` you can see how calling `ensure_init` also loads
 additional Python code and imports symbols into `myjuliamod`.
 

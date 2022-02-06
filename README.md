@@ -2,8 +2,11 @@
 
 This package provides the class `JuliaProject` for managing a
 [Julia project](https://pkgdocs.julialang.org/v1.7/environments/) that lives inside
-a Python package and is accessed via [pyjulia](https://github.com/JuliaPy/pyjulia) (the Python module "julia").
-
+a Python package.
+`julia_project` supports two libraries for calling Julia from Python,
+[pyjulia](https://github.com/JuliaPy/pyjulia) (the Python module "julia")
+and
+[juliacall](https://github.com/cjdoris/PythonCall.jl).
 
 `julia_project` is in pypi; it can be installed via `pip install julia_project`. It is meant to be used as a library
 in other projects.
@@ -22,6 +25,7 @@ import mymodule
 mymodule.project.ensure_init()
 ```
 
+See the docstring for `ensure_init` for optional arguments.
 The author of `mymodule` may have already called `ensure_init` as step peformed when
 `import mymodule` is executed. In this case, calling `ensure_init` again is a no-op.
 
@@ -40,11 +44,49 @@ If you want to handle installation and initialization of the Julia project and p
 import mymodule
 mymodule.project.disable_init()
 ```
-Then calls to `ensure_init`, explicit or otherwise will do nothing.
+Then subsequent calls to `ensure_init`, explicit or otherwise will do nothing. `project.enable_init()`
+will enable initialization if it has been disabled.
 
 If someone else has called `mymodule.project.disable_init()` and you want to override it, you
 can call `mymodule.project.enable_init()`.
 
+## Choosing pyjulia or juliacall
+
+Pass either "juliacall" or "pyjulia" as the argument `calljulia` to `ensure_init`.
+For example
+
+```python
+import mymodule
+myjuliamod.project.ensure_init(calljulia="juliacall")
+```
+
+## Using `julia_project` to call Julia functions
+
+A Python-package author can use `find_julia` to provide a custom interface to Julia resources.
+The author may provide an full-featured or thin interface. In any case it is sometimes
+useful to access the Julia/Python interface library directly.
+You can also get the imported Python library, either `julia` (i.e. `pyjulia`) or `juliacall` like this
+```python
+myjuliamod.project.julia
+```
+
+For example, the Julia module `Main` may be accessed like this.
+```python
+Main = myjuliamod.project.julia.Main
+Main.sind(90) # 1.0
+```
+
+The semantics and syntax of Python modules `julia` and `juliacall` are quite different.
+But, `julia_project` provides a minimal common layer.
+For example,
+```python
+Example = project.simple_import("Example")
+```
+imports the Julia module `Example`.
+
+Some parts of managing the Julia project are particular to either `pyjulia` or
+`juliacall`. These are handled by the classes `PyJulia` and `JuliaCall`.
+And `project.calljulia` is an instance of one of these.
 
 ## For the author of a package using `julia_project`
 
@@ -55,7 +97,10 @@ with a `setup.py` and `requirements.txt` and the Python code
 in a directory `mymodule`.
 You create a file `./mymodule/Project.toml` describing the Julia packages for the project.
 In a Python source file in `./mymodule/`, you create an instance of `julia_project.JuliaProject`
-that manages the Julia project.
+that manages the Julia project. Call this instance `project` and import it into mymodule.
+For example, in `_julia_project.py`, you might have `project = julia_project.JuliaProject([args])`.
+And in `__init__.py` of `mymodule` you have `from _julia_project.py import project`.
+(See [the example directory](./examples/myjuliamod)).
 
 ### What julia_project does
 
@@ -65,8 +110,8 @@ Then `import mymodule; mymodule.project.ensure_init()` will do the following
 * Offer to download and install Julia if it is not found.
 * Optionally create a private Julia depot for `mymodule` to avoid possible issues with
   `PyCall` in different Python environments.
-* Check that the `julia` package is installed.
-  I.e. check that `PyCall` is installed and built, etc.
+* Check that the `julia` (or `juliacall`) package is installed.
+  I.e. check that `PyCall`, or `PythonCall` is installed and built, etc.
 * Optionally download and install a Julia registry.
 * Optionally load a custom Julia system image.
 * Instantiate the Julia project.
@@ -85,15 +130,15 @@ import os
 mymodule_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # This just creates an object, but does none of the steps above.
-julia_project = JuliaProject(
+project = JuliaProject(
     name="mymodule",
     package_path=mymodule_path,
     registry_url = "git@github.com:myuser/MyModuleRegistry.git",
-    logging_level = logging.INFO # or WARN, or ERROR
+    logging_level = logging.INFO # or WARN, or ERROR,
     )
 
 # If the following is omitted, the user of mymodule must call it explicitly.
-julia_project.ensure_init() # This exectutes all the management features listed above
+project.ensure_init() # This exectutes all the management features listed above
 ```
 
 * Create `./mymodule/Project.toml` (or `./mymodule/JuliaProject.toml`)  for the Julia project.
@@ -130,9 +175,11 @@ create_sysimage(packages; sysimage_path=sysimage_path,
 name,
 package_path,
 registry_url=None,
-preferred_julia_versions = ['1.7', '1.6', 'latest'],
+version_spec="^1",
+strict_version=True,
 sys_image_dir="sys_image",
 sys_image_file_base=None,
+calljulia_lib="pyjulia",
 env_prefix="JULIA_PROJECT_",
 post_init_hook=None,
 depot=False,
@@ -143,13 +190,15 @@ console_logging=False
 * `name` -- the name of the module, e.g. "mymodule". Used only in the logger and the name of the system image.
 * `package_path` -- path to the top level of `mymodule`.
 * `registry_url` -- if `None` then no registry will be installed (other than
-   the General registry, if not already installed.)
-* `preferred_julia_versions` -- a list of preferred julia versions to search for, in order, in the [`jill.py`](https://github.com/johnnychen94/jill.py)
-   installation directory. If no preferred version is found, but another jill-installed version is found, it will be used.
+       the General registry, if not already installed.)
+* `version_spec` -- A julia [version compatibility specification](https://pkgdocs.julialang.org/v1/compatibility/). The julia
+      executable must satisfy this specification.
+* `strict_version` -- If `True` prerelease (development) versions of Julia are disallowed when applying `version_spec`.
 * `sys_image_dir` -- the directory in which scripts for compiling a system image, and the system images, are found. This is
    relative to the top level of `mymodule`.
 * `sys_image_file_base` -- the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".ext"`,
     where `ext` is the dynamic lib extension for your platform.
+* `calljulia_lib` -- The julia-from-python interface library. One of two Python packages "pyjulia" and "julicall".
 * `env_prefix` -- Prefix for environment variables to set project options
 * `depot` -- If `True`, then a private depot in the `mymodule` installation directory will be used.
 * `post_init_hook` -- A function that will be called immediately before `ensure_init` returns.
@@ -219,6 +268,8 @@ etc.
 Using a private depot should also allow `julia_project` to work with conda environments.
 
 #### Testing
+
+TESTS ARE OUTDATED!
 
 You can run tests like this:
 
