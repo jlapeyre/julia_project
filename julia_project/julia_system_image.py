@@ -177,9 +177,13 @@ class JuliaSystemImage:
 
           if isfile("compile_exercise_script.jl")
             PackageCompiler.create_sysimage(packages; sysimage_path=sysimage_path,
-                precompile_execution_file=joinpath(@__DIR__, "compile_exercise_script.jl"))
+                precompile_execution_file=joinpath(@__DIR__, "compile_exercise_script.jl"),
+                incremental=true,
+                project=joinpath(@__DIR__, "."))
           else
-            PackageCompiler.create_sysimage(packages; sysimage_path=sysimage_path)
+            PackageCompiler.create_sysimage(packages; sysimage_path=sysimage_path,
+                incremental=true,
+                project=joinpath(@__DIR__, "."))
           end
         end
         '''
