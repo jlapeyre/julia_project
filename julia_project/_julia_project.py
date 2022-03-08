@@ -117,6 +117,8 @@ class JuliaProject:
         self._find_julia = None # instance of FindJulia
         self.version_spec = version_spec
         self.strict_version = strict_version
+        if calljulia is None:
+            calljulia = "pyjulia"
         _validate_calljulia(calljulia)
         self._calljulia_name = calljulia
         self._use_sys_image = None
@@ -139,9 +141,11 @@ class JuliaProject:
         self.logger.info(f'os.environ["JULIA_PROJECT"] = {self._project_data_path}')
         self.manifest_toml = self._in_data_dir("Manifest.toml")
         self.data_project_toml = self._in_data_dir("Project.toml")
-        self.data_julia_project_toml = self._in_data_dir("JuliaProject.toml")
         utils.update_copy(self.project_toml, self.data_project_toml)
-        utils.update_copy(self.julia_project_toml, self.data_julia_project_toml)
+
+        # _data_julia_project_toml only used here!!
+        self._data_julia_project_toml = self._in_data_dir("JuliaProject.toml")
+        utils.update_copy(self._julia_project_toml, self._data_julia_project_toml)
 
 
     def disable_init(self):
@@ -180,11 +184,18 @@ class JuliaProject:
                 self.init()
             finally:
                 self._init_flags['initializing'] = False
+        elif self._init_flags['initialized']:
+            incompat_reinit = ((self.julia.__name__ == 'julia' and calljulia != 'pyjulia')
+                               or
+                               (self.julia.__name__ == 'juliacall' and calljulia != 'juliacall')
+                               )
+            if incompat_reinit:
+                raise ValueError(f"Can't change library. Already initialzed with '{self.julia.__name__}'")
 
 
     def _set_input_toml_paths(self):
         self.project_toml = self._in_inst_dir("Project.toml")
-        self.julia_project_toml = self._in_inst_dir("JuliaProject.toml")
+        self._julia_project_toml = self._in_inst_dir("JuliaProject.toml")
 
 
     def init(self):
@@ -317,7 +328,7 @@ class JuliaProject:
 
     def activate_project(self):
         if not utils.has_project_toml(self._project_data_path):
-            msg = f"Neither \"{self.project_toml}\" nor \"{self.julia_project_toml}\" exist."
+            msg = f"Neither \"{self.project_toml}\" nor \"{self._julia_project_toml}\" exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
         Pkg = self.simple_import("Pkg")
