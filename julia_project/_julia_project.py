@@ -316,7 +316,7 @@ class JuliaProject:
 
 
     def activate_project(self):
-        if not (os.path.isfile(self.data_project_toml) or os.path.isfile(self.data_julia_project_toml)):
+        if not utils.has_project_toml(self._project_data_path):
             msg = f"Neither \"{self.project_toml}\" nor \"{self.julia_project_toml}\" exist."
             logger.error(msg)
             raise FileNotFoundError(msg)
@@ -349,7 +349,7 @@ class JuliaProject:
         Pkg = self.simple_import("Pkg")
         ### Instantiate Julia project, i.e. download packages, etc.
         # Assume that if built system image exists, then Julia packages are installed.
-        if os.path.isfile(self.manifest_toml):
+        if utils.has_manifest_toml(self._project_data_path):
             logger.info("Julia project Manifest.toml found.")
         else:
             print("No Manifest.toml found. Assuming Julia packages not installed, installing...")

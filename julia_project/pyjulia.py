@@ -176,18 +176,13 @@ class PyJulia(CallJulia):
         try:
             self.api.init_julia()
             LOGGER.info("api.init_julia() done")
-            p1 = os.path.join(self.data_path, "Project.toml")
-            p2 = os.path.join(self.data_path, "JuliaProject.toml")
             # Activate before PyCall is imported so that we get the correct one
-            if os.path.exists(p1) or os.path.exists(p2):
+            if utils.has_project_toml(self.data_path):
                 LOGGER.info("Activating julia project before loading PyCall")
                 cmd = f'import Pkg; Pkg.activate("{self.data_path}")'
                 self.api.jl_eval_string(bytes(cmd.encode('utf8')))
                 LOGGER.info(cmd)
-                if not (os.path.exists(os.path.join(self.data_path, "Manifest.toml"))
-                    or
-                    os.path.exists(os.path.join(self.data_path, "JuliaManifest.toml"))
-                    ):
+                if not utils.has_manifest_toml(self.data_path):
                     cmd = 'import Pkg; Pkg.resolve(); Pkg.instantiate()'
                     self.api.jl_eval_string(bytes(cmd.encode('utf8')))
                     LOGGER.info(cmd)

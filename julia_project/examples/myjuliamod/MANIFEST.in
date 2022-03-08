@@ -1,4 +1,3 @@
 include myjuliamod/sys_image/*.jl
 include myjuliamod/sys_image/Project.toml
 include myjuliamod/Project.toml
-include myjuliamod/julia_src/*.jl

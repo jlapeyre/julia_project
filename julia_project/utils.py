@@ -111,3 +111,16 @@ def update_copy(src, dest):
             shutil.copy(src, dest)
     return None
 
+
+def has_project_toml(_dir):
+    return (
+            os.path.exists(os.path.join(_dir, "Project.toml")) or
+            os.path.exists(os.path.join(_dir, "JuliaProject.toml"))
+    )
+
+
+def has_manifest_toml(_dir):
+    return (
+            os.path.exists(os.path.join(_dir, "Manifest.toml")) or
+            os.path.exists(os.path.join(_dir, "JuliaManifest.toml"))
+    )

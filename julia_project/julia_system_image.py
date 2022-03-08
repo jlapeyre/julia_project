@@ -25,7 +25,7 @@ class JuliaSystemImage:
         self.set_sys_image_paths()
 
 
-    # This must be set after __init__, because calljulia is instantiated wit data from self
+    # This must be set after __init__, because calljulia is instantiated with data from self
     def set_calljulia(self, calljulia):
         self.calljulia = calljulia
 
@@ -99,13 +99,15 @@ class JuliaSystemImage:
         #                 f"Consider deleting  {self.sys_image_path} and restarting python."):
         #         print(msg)
         #         LOGGER.warn(msg)
-        if not (os.path.isfile(self.sys_image_project_toml) or os.path.isfile(self.sys_image_julia_project_toml)):
+        if not utils.has_project_toml(self.sys_image_dir):
+#        if not (os.path.isfile(self.sys_image_project_toml) or os.path.isfile(self.sys_image_julia_project_toml)):
             msg = f"Neither \"{self.sys_image_project_toml}\" nor \"{self.sys_iamge_julia_project_toml}\" exist."
             LOGGER.error(msg)
             raise FileNotFoundError(msg)
         utils.maybe_remove(self.sys_image_manifest_toml, LOGGER)
         Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
         Pkg.activate(self._in_sys_image_dir(""))
+        os.environ["JULIA_PROJECT"] = self._in_sys_image_dir("")
         pycall_loaded = Main.is_loaded("PyCall")
         pythoncall_loaded = Main.is_loaded("PythonCall")
         deps = Main.parse_project()["deps"].keys()
@@ -129,33 +131,60 @@ class JuliaSystemImage:
             Pkg.resolve()
         except: # Assume that failure of resolve is because update() has not been called
             msg = "Pkg.resolve() failed. Updating packages."
-            print(msg)
             LOGGER.info(msg)
             Pkg.update()
             Pkg.resolve()
         Pkg.instantiate()
         _bool = {True: "true", False: "false"}
-        cscript = f'''
-        using PackageCompiler
-        using Libdl: Libdl
-        ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")
-        ENV["PYTHON"] = Sys.which("python")
-        include("packages.jl")
-        if {_bool[pycall_loaded]}
-           push!(packages, :PyCall)
-        end
-        if {_bool[pythoncall_loaded]}
-           push!(packages, :PythonCall)
-        end
-        sysimage_path = joinpath(@__DIR__, "sys_julia_project." * Libdl.dlext)
 
-        create_sysimage(packages; sysimage_path=sysimage_path,
-             precompile_execution_file=joinpath(@__DIR__, "compile_exercise_script.jl"))
+        # Following will also perform compilation, with more granual error messages
+        # But, it is harder to read.
+        # cj = self.calljulia
+        # PackageCompiler = cj.simple_import("PackageCompiler")
+        # Libdl = cj.simple_import("Libdl")
+        # cj.seval_all("""
+        #    ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")
+        #    ENV["PYTHON"] = Sys.which("python")
+        # """)
+        # Main.include("packages.jl")
+        # if pycall_loaded:
+        #     LOGGER.info("push!(packages, :PyCall)")
+        #     cj.seval_all("push!(packages, :PyCall)")
+        # if pythoncall_loaded:
+        #     LOGGER.info("push!(packages, :PythonCall)")
+        #     cj.seval_all("push!(packages, :PythonCall)")
+        # cj.seval('sysimage_path = joinpath(@__DIR__, "sys_julia_project." * Libdl.dlext)')
+        # cj.seval_all("""PackageCompiler.create_sysimage(packages; sysimage_path=sysimage_path,
+        # precompile_execution_file=joinpath(@__DIR__, "compile_exercise_script.jl"))""")
+
+        if not os.path.exists(os.path.join(self._in_sys_image_dir("packages.jl"))):
+            raise FileNotFoundError(f'{os.path.join(self._in_sys_image_dir("packages.jl"))} does not exist')
+
+        cscript = f'''
+        import PackageCompiler
+        using Libdl: Libdl
+        let
+          ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")
+          ENV["PYTHON"] = Sys.which("python")
+          packages = include("packages.jl")
+          if {_bool[pycall_loaded]}
+             push!(packages, :PyCall)
+          end
+          if {_bool[pythoncall_loaded]}
+             push!(packages, :PythonCall)
+          end
+          sysimage_path = joinpath(@__DIR__, "sys_julia_project." * Libdl.dlext)
+
+          if isfile("compile_exercise_script.jl")
+            PackageCompiler.create_sysimage(packages; sysimage_path=sysimage_path,
+                precompile_execution_file=joinpath(@__DIR__, "compile_exercise_script.jl"))
+          else
+            PackageCompiler.create_sysimage(packages; sysimage_path=sysimage_path)
+          end
+        end
         '''
         LOGGER.info(f"Running compile script.")
         self.calljulia.seval_all(cscript)
-#        compile_script = "compile_julia_project.jl"
-#        Main.include(compile_script)
         if os.path.isfile(self.compiled_system_image):
             LOGGER.info("Compiled image found: %s.", self.compiled_system_image)
             os.rename(self.compiled_system_image, self.sys_image_path)

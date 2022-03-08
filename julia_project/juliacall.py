@@ -10,6 +10,7 @@ from juliacall import CONFIG
 
 from .calljulia import CallJulia # interface
 from . import lib
+from . import utils
 
 # This is perhaps heavier than we need. It borrows from pyjulia
 # from . import libjulia as libjulia_mod
@@ -71,10 +72,13 @@ def load_libjulia(julia_path,
     return libjulia, libjulia_path, bindir
 
 
-def init_pythoncall(libjulia, project):
-    os.environ['JULIA_PYTHONCALL_PROJECT'] = project
-
-    script = '''
+def init_pythoncall(libjulia, project_path):
+    os.environ['JULIA_PYTHONCALL_PROJECT'] = project_path
+    if utils.has_manifest_toml(project_path):
+        do_resolve = "false"
+    else:
+        do_resolve = "true"
+    script = f'''
              try
                 import Pkg
                 Pkg.activate(ENV["JULIA_PYTHONCALL_PROJECT"], io=devnull)
@@ -83,6 +87,9 @@ def init_pythoncall(libjulia, project):
                     Pkg.add("PythonCall")
                     Pkg.resolve()
                     Pkg.instantiate()
+                elseif {do_resolve}
+                  Pkg.resolve()
+                  Pkg.instantiate()
                 end
                 try
                     import PythonCall
@@ -168,10 +175,7 @@ class JuliaCall(CallJulia):
                 project_path=self.data_path,
                 system_image=system_image
             )
-            if not (os.path.exists(os.path.join(self.data_path, "Manifest.toml"))
-                    or
-                    os.path.exists(os.path.join(self.data_path, "JuliaManifest.toml"))
-                    ):
+            if not utils.has_manifest_toml(self.data_path):
                 self.questions.ask_question('compile')
             init_pythoncall(libjulia, self.data_path)
             self.libjulia = lib.LibJulia(libjulia, libjulia_path, bindir)
