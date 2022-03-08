@@ -184,7 +184,7 @@ class JuliaProject:
                 self.init()
             finally:
                 self._init_flags['initializing'] = False
-        elif self._init_flags['initialized']:
+        elif self._init_flags['initialized'] and calljulia is not None:
             incompat_reinit = ((self.julia.__name__ == 'julia' and calljulia != 'pyjulia')
                                or
                                (self.julia.__name__ == 'juliacall' and calljulia != 'juliacall')
