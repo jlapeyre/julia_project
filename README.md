@@ -35,6 +35,9 @@ both startup and the first execution of code.
 
 Calling `mymodule.project.clean()` removes the compiled system image and some other files.
 This will force again resolving the Julia package requirements on the next `import mymodule`.
+Calling `mymodule.project.clean_all()` will remove the entire project tree.
+This is a kind of "factory reset". The next time you run `project.ensure_init()` a new directory will be created
+and populated with files from the installation directly.
 
 Calling `mymodule.project.update()` checks for compatible updates of Julia packages that
 are direct or indirect dependencies of `mymodule`, and performs the update.
@@ -133,7 +136,7 @@ mymodule_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 project = JuliaProject(
     name="mymodule",
     package_path=mymodule_path,
-    registry_url = "git@github.com:myuser/MyModuleRegistry.git",
+    registries = {"MyModuleRegistry" : "git@github.com:myuser/MyModuleRegistry.git"},
     logging_level = logging.INFO # or WARN, or ERROR,
     )
 
@@ -146,27 +149,22 @@ project.ensure_init() # This exectutes all the management features listed above
 #### Compiling
 
 Make a folder `./mymodule/sys_image/`. Add a file `./mymodule/sys_image/Project.toml` (or `./mymodule/sys_image/JuliaProject.toml`)
-This typically contains the same dependencies as the top-level `Project.toml`. Perhaps a few
-more or less.
-Add a script `./mymodule/sys_image/compile_julia_project.jl`. Typical contents are
+This typically contains the same dependencies as the top-level `Project.toml`. Perhaps a few more or less.
+Add a script `./mymodule/sys_image/packages.jl` containing an `Array{Symbol}` of packages to be
+included in the image.
 ```julia
-using PackageCompiler
-using Libdl: Libdl
-
-packages = [:PyCall, :APackage, :AnotherPackage]
-
-sysimage_path = joinpath(@__DIR__, "sys_julia_project." * Libdl.dlext)
-
-create_sysimage(packages; sysimage_path=sysimage_path,
-                precompile_execution_file=joinpath(@__DIR__, "compile_exercise_script.jl"))
+[:APackage, :AnotherPackage]
 ```
-* The system image name must be "sys_julia_project.dylib", "sys_julia_project.dll", or , "sys_julia_project.so".
-  The example above will choose the correct suffix.
-* `precompile_execution_file` can be whatever you like, or omitted.
-*  After compiling, the system image file will be renamed from
-   `sys_julia_project.so` (or `dll`, or `dylib`), to a name that includes the version of the julia exectuable
-   that built it. The latter is the file name that will be searched for the next time
-   you import `mymodule`.
+
+* You don't need to include `PyCall` or `PythonCall`.
+
+* Optionally include a file `compile_exercise_script.jl` that will passed as `precompile_execution_file`.
+
+* After compiling, the system image file will be renamed from `sys_julia_project.so` (or
+   `dll`, or `dylib`) to a name that includes the version of the julia exectuable that
+   built it. The latter is the file name that will be searched for the next time you
+   import `mymodule`.
+
 * The project is compiled by calling the method `JuliaProject.compile` either explicitly or during the installation.
 
 #### Arguments to JuliaProject
@@ -174,15 +172,15 @@ create_sysimage(packages; sysimage_path=sysimage_path,
 ```python
 name,
 package_path,
-registry_url=None,
-version_spec="^1",
+registries=None,
+version_spec="^1.6",
 strict_version=True,
 sys_image_dir="sys_image",
 sys_image_file_base=None,
-calljulia_lib="pyjulia",
+calljulia="pyjulia",
 env_prefix="JULIA_PROJECT_",
 post_init_hook=None,
-depot=False,
+depot=None,
 logging_level=None,
 console_logging=False
 ```
@@ -198,7 +196,7 @@ console_logging=False
    relative to the top level of `mymodule`.
 * `sys_image_file_base` -- the base name of the Julia system image. The system image file will be `sys_image_file_base + "-" + a_julia_version_string + ".ext"`,
     where `ext` is the dynamic lib extension for your platform.
-* `calljulia_lib` -- The julia-from-python interface library. One of two Python packages "pyjulia" and "julicall".
+* `calljulia` -- The julia-from-python interface library. One of two Python packages "pyjulia" and "juliacall".
 * `env_prefix` -- Prefix for environment variables to set project options
 * `depot` -- If `True`, then a private depot in the `mymodule` installation directory will be used.
 * `post_init_hook` -- A function that will be called immediately before `ensure_init` returns.

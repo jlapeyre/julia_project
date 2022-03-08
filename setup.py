@@ -15,7 +15,9 @@ setuptools.setup(
     py_modules=["julia_project"],
     install_requires=['julia>=0.2',
                       'juliacall>=0.6.1',
-                      'find_julia>=0.2.1'
+                      'find_julia>=0.2.1',
+                      'find_libpython',
+                      'tomli'
                       ],
     classifiers=[
         "Programming Language :: Python :: 3",

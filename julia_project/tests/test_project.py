@@ -20,6 +20,5 @@ def test_full_sys_path(run_proj):
 
 @pytest.mark.julia
 def test_tomls(run_proj):
-    assert run_proj.manifest_toml == './julia_project/tests/project/Manifest.toml'
     assert run_proj.project_toml == './julia_project/tests/project/Project.toml'
     assert run_proj.sys_image_path_exists == False

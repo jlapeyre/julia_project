@@ -52,3 +52,17 @@ function parse_project(path::AbstractString)
     end
     return Base.parsed_toml(fullpath)
 end
+
+
+function  get_pycall_libpython()
+    pycall_jl = Base.find_package("PyCall")
+    if isnothing(pycall_jl)
+        return (nothing, "not installed")
+    end
+    deps_jl = joinpath(dirname(dirname(Base.find_package("PyCall"))), "deps", "deps.jl")
+    if ! isfile(deps_jl)
+        return (nothing, "not built")
+    end
+    include(deps_jl) # not a great way to do this
+    return (libpython, "ok")
+end

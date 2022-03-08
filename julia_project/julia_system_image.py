@@ -1,6 +1,7 @@
 #import julia
 import os
 from . import utils
+from . import install
 
 import logging
 LOGGER = logging.getLogger('julia_project.system_image') # shorten this?
@@ -21,8 +22,12 @@ class JuliaSystemImage:
             sys_image_file_base = "sys_" + name
         self.sys_image_file_base = sys_image_file_base
         self.julia_version = julia_version
-        self.set_toml_paths()
-        self.set_sys_image_paths()
+        # self.sys_image_path is the path for the system image written upon compilation. This
+        # file will be renamed after compilation.
+        self.sys_image_path = self._in_sys_image_dir(
+            self.sys_image_file_base + "-" + self.julia_version + utils.SHLIB_SUFFIX
+        )
+        self.compiled_system_image = self._in_sys_image_dir("sys_julia_project" + utils.SHLIB_SUFFIX)
 
 
     # This must be set after __init__, because calljulia is instantiated with data from self
@@ -35,32 +40,14 @@ class JuliaSystemImage:
         return os.path.join(self.sys_image_dir, rel_path)
 
 
-    def get_sys_image_file_name(self):
-        """Return the filename of the system image written upon compilation. This
-        file will be renamed after compilation.
-        """
-        # self.version_raw = self.julia_info.version_raw # Make this a dict, or use JuliaInfo
-        return self.sys_image_file_base + "-" + self.julia_version + utils.SHLIB_SUFFIX
-
-
-    def set_sys_image_paths(self):
-        self.sys_image_path = self._in_sys_image_dir(self.get_sys_image_file_name())
-        self.compiled_system_image = self._in_sys_image_dir("sys_julia_project" + utils.SHLIB_SUFFIX)
-
-
-    def set_toml_paths(self):
-        self.sys_image_project_toml = self._in_sys_image_dir("Project.toml")
-        self.sys_image_julia_project_toml = self._in_sys_image_dir("JuliaProject.toml")
-        self.sys_image_manifest_toml = self._in_sys_image_dir("Manifest.toml")
-
-
     def clean(self):
         """
         Delete some files created when installing Julia packages. These are Manifest.toml files
         and a compiled system image.
         """
-        for _file in [self.sys_image_manifest_toml, self.sys_image_path]:
-            utils.maybe_remove(_file, LOGGER)
+        for _file in [self._in_sys_image_dir("Manifest.toml"), self._in_sys_image_dir("JuliaManifest.toml"),
+                      self.sys_image_path]:
+            utils.maybe_remove(_file)
 
 
     def compile(self):
@@ -72,12 +59,14 @@ class JuliaSystemImage:
         Pkg = self.calljulia.julia.Pkg
         current_path = Main.pwd()
         current_project = Pkg.project().path
+        old_julia_project = os.getenv("JULIA_PROJECT")
         try:
             self._compile()
         except:
-            print("Exception when compiling")
+            print("Exception when compiling system image.")
             raise
         finally:
+            install.reset_env_var("JULIA_PROJECT", old_julia_project)
             Main.cd(current_path)
             Pkg.activate(current_project)
 
@@ -88,29 +77,23 @@ class JuliaSystemImage:
         """
         Main = self.calljulia.julia.Main
         Pkg = self.calljulia.julia.Pkg
-        if not os.path.isdir(self._in_sys_image_dir("")):
-            msg = f"Can't find directory for compiling system image: {self._in_sys_image_dir('')}"
+        if not os.path.isdir(self.sys_image_dir):
+            msg = f"Can't find directory for compiling system image: {self.sys_image_dir}"
             raise FileNotFoundError(msg)
 
-        # self.set_sys_image_paths() # already done
-        # TODO: Fix this
-        # if self.loaded_sys_image_path == self.sys_image_path:
-        #     for msg in ("WARNING: Compiling system image while compiled system image is loaded.",
-        #                 f"Consider deleting  {self.sys_image_path} and restarting python."):
-        #         print(msg)
-        #         LOGGER.warn(msg)
         if not utils.has_project_toml(self.sys_image_dir):
-#        if not (os.path.isfile(self.sys_image_project_toml) or os.path.isfile(self.sys_image_julia_project_toml)):
-            msg = f"Neither \"{self.sys_image_project_toml}\" nor \"{self.sys_iamge_julia_project_toml}\" exist."
+            msg = utils.no_project_toml_message(self.sys_image_dir)
             LOGGER.error(msg)
             raise FileNotFoundError(msg)
-        utils.maybe_remove(self.sys_image_manifest_toml, LOGGER)
+        for _file in [self._in_sys_image_dir("Manifest.toml"), self._in_sys_image_dir("JuliaManifest.toml")]:
+            utils.maybe_remove(_file)
         Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
-        Pkg.activate(self._in_sys_image_dir(""))
-        os.environ["JULIA_PROJECT"] = self._in_sys_image_dir("")
+        Pkg.activate(self.sys_image_dir)
+        os.environ["JULIA_PROJECT"] = self.sys_image_dir
         pycall_loaded = Main.is_loaded("PyCall")
         pythoncall_loaded = Main.is_loaded("PythonCall")
-        deps = Main.parse_project()["deps"].keys()
+        deps = install.parse_project(self.sys_image_dir)["deps"].keys() # This is faster
+#        deps = Main.parse_project()["deps"].keys()
         pycall_in_deps = "PyCall" in deps
         pythoncall_in_deps = "PythonCall" in deps
         if pycall_loaded:
@@ -126,7 +109,7 @@ class JuliaSystemImage:
             if pythoncall_in_deps:
                 Pkg.rm("PythonCall")
         LOGGER.info("Compiling: probed Project.toml path: %s", Pkg.project().path)
-        Main.cd(self._in_sys_image_dir(""))
+        Main.cd(self.sys_image_dir)
         try:
             Pkg.resolve()
         except: # Assume that failure of resolve is because update() has not been called
@@ -135,7 +118,6 @@ class JuliaSystemImage:
             Pkg.update()
             Pkg.resolve()
         Pkg.instantiate()
-        _bool = {True: "true", False: "false"}
 
         # Following will also perform compilation, with more granual error messages
         # But, it is harder to read.
@@ -157,8 +139,11 @@ class JuliaSystemImage:
         # cj.seval_all("""PackageCompiler.create_sysimage(packages; sysimage_path=sysimage_path,
         # precompile_execution_file=joinpath(@__DIR__, "compile_exercise_script.jl"))""")
 
-        if not os.path.exists(os.path.join(self._in_sys_image_dir("packages.jl"))):
-            raise FileNotFoundError(f'{os.path.join(self._in_sys_image_dir("packages.jl"))} does not exist')
+        packages_file = os.path.join(self._in_sys_image_dir("packages.jl"))
+        if not os.path.exists(packages_file):
+            raise FileNotFoundError(f'{packages_file} does not exist')
+
+        _bool = {True: "true", False: "false"}
 
         cscript = f'''
         import PackageCompiler

@@ -1,3 +1,4 @@
+import sys
 from . import utils
 
 
@@ -10,26 +11,16 @@ Would you like to compile a system image after installation?
 """,
               'depot' :
 """
-You can install all of the Julia packages and package information in a module-specific "depot",
-that is, one specific to this Python module. This may allow you to use Julia with python projects
-that have different Python installation locations.
-Or you can install packages in the standard per-user Julia "depot".
+You can install all of the Julia packages and package information in a
+module-specific "depot", that is, one specific to this Python module. This may
+allow you to use Julia with python projects that have different Python
+installation locations.  If you answer "no", packages will be installed in the
+standard per-user Julia "depot".
+
 Would you like to use a python-module-specific depot for Julia packages?
 """
               }
 
-_INCOMPATIBLE_PYTHON_QUESTION = """
-The currently running libpython is different from the one that was used to build
-the required Julia package PyCall.jl.
-They are required to be the same. I can take one of three actions:
-1. "Rebuild" PyCall to use the currently running libpython. This means PyCall will no
- longer work with the libpython that it was previously built with.
-2. Create a Julia depot specific to this python package. All Julia packages, including PyCall,
-as well as cached, compiled code will be stored in this depot. The version of PyCall in your
-main depot (the one currently causing this problem) and the one in your new python-package-specific depot
-can coexist. This will duplicate a lot of the data stored in your main depot.
-3. Print a more detailed error message and exit.
-"""
 
 class ProjectQuestions:
 

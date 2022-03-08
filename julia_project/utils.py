@@ -3,6 +3,8 @@ import sys
 import shutil
 import sysconfig
 
+import logging
+LOGGER = logging.getLogger('julia_project.utils') # shorten this?
 
 is_windows = os.name == "nt"
 is_apple = sys.platform == "darwin"
@@ -90,11 +92,10 @@ def _get_virtual_env_path():
     return env_path
 
 
-def maybe_remove(path, logger=None):
+def maybe_remove(path):
     if os.path.exists(path):
         os.remove(path)
-        if logger:
-            logger.info(f"Removing {path}")
+        LOGGER.info(f"Removing {path}")
 
 
 def update_copy(src, dest):
@@ -112,10 +113,22 @@ def update_copy(src, dest):
     return None
 
 
-def has_project_toml(_dir):
+def _project_toml(project_path):
+    return os.path.join(project_path, "Project.toml")
+
+
+def _julia_project_toml(project_path):
+    return os.path.join(project_path, "JuliaProject.toml")
+
+
+def no_project_toml_message(project_path):
+    return f'Neither "{_project_toml(project_path)}" nor "{_julia_project_toml(project_path)}" exist.'
+
+
+def has_project_toml(project_path):
     return (
-            os.path.exists(os.path.join(_dir, "Project.toml")) or
-            os.path.exists(os.path.join(_dir, "JuliaProject.toml"))
+            os.path.exists(_project_toml(project_path)) or
+            os.path.exists(_julia_project_toml(project_path))
     )
 
 
