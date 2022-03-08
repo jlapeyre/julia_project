@@ -1,0 +1,10 @@
+include julia_project/examples/myjuliamod/README.md
+include julia_project/examples/myjuliamod/MANIFEST.in
+include julia_project/examples/myjuliamod/*.txt
+include julia_project/examples/myjuliamod/setup.py
+include julia_project/examples/myjuliamod/myjuliamod/*.py
+include julia_project/examples/myjuliamod/myjuliamod/Project.toml
+include julia_project/examples/myjuliamod/myjuliamod/sys_image/*.jl
+include julia_project/examples/myjuliamod/myjuliamod/sys_image/Project.toml
+
+
