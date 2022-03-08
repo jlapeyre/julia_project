@@ -140,12 +140,17 @@ class JuliaProject:
         os.environ["JULIA_PROJECT"] = self._project_data_path
         self.logger.info(f'os.environ["JULIA_PROJECT"] = {self._project_data_path}')
         self.manifest_toml = self._in_data_dir("Manifest.toml")
+
         self.data_project_toml = self._in_data_dir("Project.toml")
         utils.update_copy(self.project_toml, self.data_project_toml)
 
         # _data_julia_project_toml only used here!!
         self._data_julia_project_toml = self._in_data_dir("JuliaProject.toml")
         utils.update_copy(self._julia_project_toml, self._data_julia_project_toml)
+        if not utils.has_project_toml(self._project_data_path):
+            msg = f"Neither \"{self.project_toml}\" nor \"{self._julia_project_toml}\" exist."
+            logger.error(msg)
+            raise FileNotFoundError(msg)
 
 
     def disable_init(self):
