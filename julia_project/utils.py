@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 import sysconfig
+import subprocess
 
 import logging
 LOGGER = logging.getLogger('julia_project.utils') # shorten this?
@@ -41,46 +42,40 @@ def query_yes_no(question, default="yes"):
     elif default == "no":
         prompt = " [y/N] "
     else:
-        raise ValueError("invalid default answer: '%s'" % default)
+        raise ValueError(f"invalid default answer: '{default}'")
 
     while True:
         sys.stdout.write(question + prompt)
         choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
-        elif choice in valid:
+        if choice in valid:
             return valid[choice]
-        else:
-            sys.stdout.write("Please respond with 'yes' or 'no' "
-                             "(or 'y' or 'n').\n")
+        sys.stdout.write("Please respond with 'yes' or 'no' "
+                         "(or 'y' or 'n').\n")
 
-
-import subprocess
 
 # From PythonCall
 def julia_version_str(exe):
     """
-    If exe is a julia executable, return its version as a string. Otherwise return None.
+    If exe is a julia executable, return its version as a string. Otherwise raise an exception.
     """
-    try:
-        proc = subprocess.run([exe, "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except:
-        return
+    proc = subprocess.run([exe, "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     words = proc.stdout.decode('utf-8').split()
     if len(words) < 3 or words[0].lower() != 'julia' or words[1].lower() != 'version':
-        return
+        raise ValueError(f"{exe} is not a julia executable")
     return words[2]
 
 
 # Adapted from PythonCall
-def _default_depot_path():
+def default_depot_path():
     return (os.environ.get("JULIA_DEPOT_PATH", "").split(";" if os.name == "nt" else ":")[0]
                or os.path.join(os.path.expanduser("~"), ".julia")
                )
 
 
 # Adapted from PythonCall
-def _get_virtual_env_path():
+def get_virtual_env_path():
     paths = [os.environ.get('VIRTUAL_ENV'), os.environ.get('CONDA_PREFIX'), os.environ.get('MAMBA_PREFIX')]
     paths = [x for x in paths if x is not None]
     if len(paths) == 0:

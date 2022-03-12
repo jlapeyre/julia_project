@@ -1,9 +1,8 @@
-#import julia
 import os
+import logging
 from . import utils
 from . import install
 
-import logging
 LOGGER = logging.getLogger('julia_project.system_image') # shorten this?
 
 
@@ -28,6 +27,7 @@ class JuliaSystemImage:
             self.sys_image_file_base + "-" + self.julia_version + utils.SHLIB_SUFFIX
         )
         self.compiled_system_image = self._in_sys_image_dir("sys_julia_project" + utils.SHLIB_SUFFIX)
+        self.calljulia = None # Can't pass this. It must be set later.
 
 
     # This must be set after __init__, because calljulia is instantiated with data from self
@@ -112,7 +112,9 @@ class JuliaSystemImage:
         Main.cd(self.sys_image_dir)
         try:
             Pkg.resolve()
-        except: # Assume that failure of resolve is because update() has not been called
+        # Assume that failure of resolve is because update() has not been called
+        # TODO: Find more precisely what error is raised.
+        except Exception:
             msg = "Pkg.resolve() failed. Updating packages."
             LOGGER.info(msg)
             Pkg.update()
@@ -172,7 +174,7 @@ class JuliaSystemImage:
           end
         end
         '''
-        LOGGER.info(f"Running compile script.")
+        LOGGER.info("Running compile script.")
         self.calljulia.seval_all(cscript)
         if os.path.isfile(self.compiled_system_image):
             LOGGER.info("Compiled image found: %s.", self.compiled_system_image)

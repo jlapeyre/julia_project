@@ -4,14 +4,15 @@ import os
 import sys
 import pathlib
 import datetime
+import logging
 import tomli
 import find_libpython
 
 
-import logging
 LOGGER = logging.getLogger('julia_project.install')
 
 std_flags = ['-q', '--history-file=no', '--startup-file=no', '--optimize=0']
+
 
 def reset_env_var(var_name, old_val):
     if old_val:
@@ -224,14 +225,12 @@ def get_manifest_toml(proj_dir):
         mt = os.path.join(proj_dir, "Manifest.toml")
         if os.path.exists(mt):
             return mt
-        else:
-            return None
-    if proj_toml.endswith("JuliaProject.toml"):
-        mt = os.path.join(proj_dir, "JuliaManifest.toml")
-        if os.path.exists(mt):
-            return mt
-        else:
-            return None
+        return None
+    assert proj_toml.endswith("JuliaProject.toml")
+    mt = os.path.join(proj_dir, "JuliaManifest.toml")
+    if os.path.exists(mt):
+        return mt
+    return None
 
 
 def manifest_mtime(project_path):
@@ -319,7 +318,7 @@ def ensure_project_ready(project_path=None, julia_exe=None, depot_path=None,
         return None
     LOGGER.info(f"Installing or instantiating project: project {project_path}, depot {depot_path}")
     if preinstall_callback is not None: # We are not using this
-        LOGGER.info(f"Running preinstall_callback.")
+        LOGGER.info("Running preinstall_callback.")
         preinstall_callback()
     ensure_general_registry(project_path, julia_exe=julia_exe, depot_path=depot_path, clog=clog)
     if registries is not None:
@@ -389,7 +388,7 @@ def test_pycall(project_path, julia_exe=None, depot_path=None, clog=False):
         if clog:
             print(f"pycall_libpython={pycall_libpython}  this_libpython={this_libpython}")
         comp = pycall_libpython == this_libpython
-        if comp == True:
+        if comp is True:
             result["pycall_ok"] = True
         else:
             result["pycall_ok"] = False
@@ -450,7 +449,7 @@ def slow_test_pycall(project_path, julia_exe=None, depot_path=None, clog=False):
     if clog:
         print(f"pycall_libpython={pycall_libpython}  this_libpython={this_libpython}")
     result = pycall_libpython == this_libpython
-    if result == True:
+    if result is True:
         return (True, None)
     return (result, "incompatible libpython")
 
@@ -470,7 +469,8 @@ def rebuild_pycall(project_path, python_exe=None, julia_exe=None, depot_path=Non
     except subprocess.CalledProcessError as err:
         raise err
     finally:
-        reset_env_var("PYTHON", python_exe)
+        reset_env_var("PYTHON", old_python)
+    return result
 
 
 def ensure_project_ready_fix_pycall(
@@ -490,6 +490,7 @@ def ensure_project_ready_fix_pycall(
     """
         Check that Julia project is properly installed and try to fix PyCall if needed.
 
+        Many of the arguments are passed to `ensure_project_ready`.
         - presintall_callback is a function to be called before installing/updating
         - depot_path if not None will be used as a depot
         - possible_depot_path will be used as a depot if libpython is incompatible and
@@ -502,7 +503,7 @@ def ensure_project_ready_fix_pycall(
     """
     for trial_num in (1, 2, 3):
         if trial_num == 1:
-            if force != True:
+            if force is not True:
                 force = False
         else:
             force = True
@@ -526,7 +527,7 @@ def ensure_project_ready_fix_pycall(
                     raise Exception(f"Rebuilding PyCall failed: {explain_pycall_test(pycall_result)}")
                 print("Rebuilding PyCall succeeded.")
                 return
-            elif answer == "depot":
+            if answer == "depot":
                 if answer_depot_callback is not None:
                     answer_depot_callback()
                 depot_path = possible_depot_path
@@ -550,7 +551,6 @@ def ensure_project_ready_fix_pycall(
             raise Exception(f"PyCall is not ok: {explain_pycall_test(pycall_result)}")
 
     raise Exception("Unable to properly install PyCall")
-
 
 
 _INCOMPATIBLE_PYTHON_QUESTION = """
@@ -585,8 +585,7 @@ def resolve_incompatibility(incompat_msg=None):
             break
     if choice == '1':
         return "depot"
-    elif choice == '2':
+    if choice == '2':
         return "rebuild"
-    else:
-        print(incompat_msg)
-        raise Exception(incompat_msg)
+    print(incompat_msg)
+    raise Exception(incompat_msg)

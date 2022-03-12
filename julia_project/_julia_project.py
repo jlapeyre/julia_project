@@ -1,8 +1,6 @@
 import logging
 import os
-import sys
 import shutil
-import importlib
 import distutils.dir_util
 import find_julia
 from .julia_system_image import JuliaSystemImage
@@ -17,9 +15,9 @@ from .questions import ProjectQuestions
 # This true even if the user requests a "private" depo.
 # In the latter case, we will have a depot within the default depot.
 def _get_parent_project_path():
-    env_path = utils._get_virtual_env_path()
+    env_path = utils.get_virtual_env_path()
     if env_path is None:
-        env_path = utils._default_depot_path()
+        env_path = utils.default_depot_path()
     return os.path.join(env_path, "julia_project")
 
 
@@ -124,6 +122,16 @@ class JuliaProject:
         _validate_calljulia(calljulia)
         self._calljulia_name = calljulia
         self._use_sys_image = None
+        self.logger = None # TODO: Use global LOGGER
+        self.loaded_sys_image_path = None
+        self.log_file_path = None # TODO: can we git rid of this?
+        self.julia = None # TODO: We need a better name for this. Its value is either julia or juliacall
+        self.calljulia = None
+        self.julia_system_image = None
+        self.sys_image_dir = None
+        self.julia_version = None
+        self.project_path = None
+
 
 
     def _in_package_dir(self, rel_path):
@@ -140,15 +148,11 @@ class JuliaProject:
         os.makedirs(self.project_path, exist_ok = True)
         os.environ["JULIA_PROJECT"] = self.project_path
         self.logger.info(f'os.environ["JULIA_PROJECT"] = {self.project_path}')
-        self.manifest_toml = self._in_project_dir("Manifest.toml")
-
-        self.project_toml = self._in_project_dir("Project.toml")
-        utils.update_copy(self.package_project_toml, self.project_toml)
-
-        utils.update_copy(self._package_julia_project_toml, self._in_project_dir("JuliaProject.toml"))
+        utils.update_copy(self._in_package_dir("Project.toml"), self._in_project_dir("Project.toml"))
+        utils.update_copy(self._in_package_dir("JuliaProject.toml"), self._in_project_dir("JuliaProject.toml"))
         if not utils.has_project_toml(self.project_path):
             msg = utils.no_project_toml_message(self.project_path)
-            logger.error(msg)
+            self.logger.error(msg)
             raise FileNotFoundError(msg)
 
 
@@ -200,19 +204,13 @@ class JuliaProject:
                 raise ValueError(f"Can't change library. Already initialzed with '{self.julia.__name__}'")
 
 
-    def _set_package_toml_paths(self):
-        self.package_project_toml = self._in_package_dir("Project.toml")
-        self._package_julia_project_toml = self._in_package_dir("JuliaProject.toml")
-
-
     def init(self):
         """Run all steps to initialize and load Julia and the Julia project."""
-        self._setup_logging()  # level=self._logging_level, console=self._console_logging
+        self._setup_logging()
         self.logger.info("")
         self.logger.info("JuliaProject.init()")
         self.questions.logger = self.logger
         self.questions.read_environment_variables()
-        self._set_package_toml_paths()
         self.find_julia()
         if self.julia_path is None:
             raise FileNotFoundError("No julia executable found")
@@ -220,10 +218,6 @@ class JuliaProject:
         self.julia_version = utils.julia_version_str(self.julia_path)
         self.logger.info("Julia version: %s.", self.julia_version)
         self._set_project_path()
-        if not utils.has_manifest_toml(self.project_path):
-            self._no_manifest_toml_at_start = True  # proxy for first init after installation
-        else:
-            self._no_manifest_toml_at_start = False
         self.sys_image_dir = self._in_project_dir(self.rel_sys_image_dir)
         if os.path.exists(self.package_sys_image_dir):
             self.logger.info(f"Copying/updating installed system image directory {self.sys_image_dir}")
@@ -234,7 +228,7 @@ class JuliaProject:
         # if not os.path.exists(self.sys_image_dir):
         #     shutil.copytree(self.package_sys_image_dir, self.sys_image_dir)
         possible_depot_path = self._in_project_dir("depot")
-        if os.path.isdir(possible_depot_path) and not self.questions.results['depot'] == False:
+        if os.path.isdir(possible_depot_path) and not self.questions.results['depot'] is False:
             self.questions.results['depot'] = True
             self.logger.info("Found existing Python-project specific Julia depot")
         self.julia_system_image = JuliaSystemImage(
@@ -245,7 +239,7 @@ class JuliaProject:
             )
         calljulia_lib = _calljulia_lib(self._calljulia_name, self.logger)
 
-        if self.questions.results['depot'] == True:
+        if self.questions.results['depot'] is True:
             depot_path = possible_depot_path
         else:
             depot_path = None
@@ -253,7 +247,7 @@ class JuliaProject:
         _need_resolve = install.need_resolve(self.project_path, depot_path)
         if _need_resolve:
             self.questions.ask_questions()
-            if self.questions.results['depot'] == True: # May have changed depot
+            if self.questions.results['depot'] is True: # May have changed depot
                 depot_path = possible_depot_path
             else:
                 depot_path = None
@@ -301,7 +295,7 @@ class JuliaProject:
                 answer_depot_callback=answer_depot_callback
             )
 
-        if self.questions.results['depot'] == True:
+        if self.questions.results['depot'] is True:
             os.environ["JULIA_DEPOT_PATH"] = possible_depot_path
             self.logger.info(f"Using private depot '{possible_depot_path}'")
         else:
@@ -375,6 +369,7 @@ class JuliaProject:
             ch.setLevel(self._logging_level)
             ch.setFormatter(formatter)
             self.logger.addHandler(ch)
+        return None
 
 
     def find_julia(self):
@@ -384,7 +379,7 @@ class JuliaProject:
 
         found_path = find_julia.find_or_install(
             env_var = self._env_vars.envname("JULIA_PATH"),
-            answer_yes = (self.questions.results['install'] == True),
+            answer_yes = (self.questions.results['install'] is True),
             version_spec = (self.version_spec if self.version_spec is not None else "^1"),
             post_question_hook = other_questions,
             strict=(self.strict_version if self.strict_version is not None else True)
@@ -411,7 +406,7 @@ class JuliaProject:
     def activate_project(self):
         if not utils.has_project_toml(self.project_path):
             msg = utils.no_project_toml_message(self.project_path)
-            logger.error(msg)
+            self.logger.error(msg)
             raise FileNotFoundError(msg)
         Pkg = self.simple_import("Pkg")
         # Activate the Julia project
@@ -460,9 +455,9 @@ class JuliaProject:
     def clean_all(self):
         project_dir = os.path.join(_get_parent_project_path(), self.name + "-" + self.julia_version)
         if project_dir.find("julia_project") < 0:
-            raise ValueError(f"Expecting project path to contain string 'julia_project'")
+            raise ValueError("Expecting project path to contain string 'julia_project'")
         if os.path.isdir(project_dir):
-            self.logger.info("Removing project directory {project_dir}")
+            self.logger.info(f"Removing project directory {project_dir}")
             shutil.rmtree(project_dir)
 
 

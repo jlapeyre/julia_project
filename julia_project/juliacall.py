@@ -1,22 +1,20 @@
-import juliacall
-
 import os
 import ctypes
-import sys
 import subprocess
+import logging
 
+import juliacall
 # Comment in original source:
 from juliacall import CONFIG
 
 from .calljulia import CallJulia # interface
 from . import lib
 from . import utils
-from . import install
 
 # This is perhaps heavier than we need. It borrows from pyjulia
 # from . import libjulia as libjulia_mod
 
-import logging
+
 LOGGER = logging.getLogger('julia_project.juliacall')
 LOGGER.info("importing julia_project/juliacall")
 

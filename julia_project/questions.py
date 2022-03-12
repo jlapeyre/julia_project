@@ -1,6 +1,5 @@
-import sys
 from . import utils
-
+from . import environment
 
 _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py to download and install Julia?",
               'compile' :
@@ -31,7 +30,7 @@ class ProjectQuestions:
                  ):
         self.results = {"install": None, "compile": None, "depot": depot}
         if env_vars is None:
-            env_vars = EnvVars()
+            env_vars = environment.EnvVars()
         self.logger = logger
         self._env_vars = env_vars
 
@@ -44,7 +43,7 @@ class ProjectQuestions:
 
 
     def ask_questions(self):
-        for q in self.results.keys():
+        for q in self.results:
             self.ask_question(q)
 
 
@@ -52,14 +51,14 @@ class ProjectQuestions:
         var_name = self._env_vars.envname(var_base_name)
         result = self._env_vars.getenv(var_base_name)
         if result:
-           if result == 'y':
-               self.results[question_key] = True
-               self.logger.info(f"read {var_name} = 'y'")
-           elif result == 'n':
-               self.results[question_key] = False
-               self.logger.info(f"read {var_name} = 'n'")
-           else:
-               raise ValueError(f"{var_name} must be y or n")
+            if result == 'y':
+                self.results[question_key] = True
+                self.logger.info(f"read {var_name} = 'y'")
+            elif result == 'n':
+                self.results[question_key] = False
+                self.logger.info(f"read {var_name} = 'n'")
+            else:
+                raise ValueError(f"{var_name} must be y or n")
         else:
             self.logger.info(f"{var_name} not set")
 

@@ -1,21 +1,17 @@
 import os
-import sys
 import importlib
 import logging
-from . import utils
 
-from .calljulia import CallJulia
-
-from . import lib
-
-import logging
-LOGGER = logging.getLogger('julia_project.pyjulia')
-
-LOGGER.info("importing julia module")
 import julia
 from julia import JuliaError
 import julia.core
 import julia.api
+
+from .calljulia import CallJulia
+from . import lib
+
+LOGGER = logging.getLogger('julia_project.pyjulia')
+
 
 
 class PyJulia(CallJulia):
@@ -32,13 +28,21 @@ class PyJulia(CallJulia):
         self.project_path = project_path
         self.julia_system_image = julia_system_image
         self.use_sys_image = use_sys_image
+        self.api = None
+        self.info = None
+        self.libjulia = None
 
 
-    def seval(self, _str):
+    # pylint: disable=no-member
+    @classmethod
+    def seval(cls, _str):
         return julia.Main.eval(_str.strip())
 
+
     # This seems to work with multiple top-level expressions
-    def seval_all(self, _str):
+    # pylint: disable=no-member
+    @classmethod
+    def seval_all(cls, _str):
         return julia.Main.eval(_str.strip())
 
 
@@ -47,7 +51,8 @@ class PyJulia(CallJulia):
         self.api.jl_eval_string(bytes(cmd.encode('utf8')))
 
 
-    def simple_import(self, module : str):
+    @classmethod
+    def simple_import(cls, module : str):
         """
         import the julia module `module` and return the python-wrapped module.
 
@@ -60,6 +65,7 @@ class PyJulia(CallJulia):
         _info = julia.api.JuliaInfo.load(julia=self.julia_path)
         LOGGER.info("Loaded JuliaInfo.")
         return _info
+
 
     # Note, that this doesn't start the Julia runtime. It does everything to prepare for starting.
     def init_julia_module(self):
@@ -90,14 +96,15 @@ class PyJulia(CallJulia):
             if self.use_sys_image is not False:
                 self.api.sysimage = sys_image_path
                 LOGGER.info("Loading system image %s", sys_image_path)
+                # pylint: disable=unused-import,import-outside-toplevel
                 try:
                     import juliacall
                     # Unfortunately, PythonCall does a lot of work just by existing in the system image.
-                    # So this will slow startup time significantly.
+                    # So this will slow startup time significantly if PythonCall is loaded.
                     # But, because we have PYTHON_JULIACALL_NOINIT = yes, if PythonCall is *not* in
                     # the system image, import juliacall is very fast.
                     LOGGER.info("Loading juliacall to avoid segfault in case PythonCall is in sysimage.")
-                except:
+                except ModuleNotFoundError:
                     pass
             else:
                 LOGGER.info("Custom system image found, but will not be used")
@@ -106,15 +113,15 @@ class PyJulia(CallJulia):
 
         # Both the path and possibly the sysimage have been set. Now initialize Julia.
         LOGGER.info("Initializing julia")
+        # These imports import the Julia modules, which are then available outside of this scope
+        # pylint: disable=no-member,no-name-in-module,redefined-outer-name,import-error,unused-import,import-outside-toplevel
         try:
             self.api.init_julia()
             LOGGER.info("api.init_julia() done")
             import julia.Base
             import julia.Main
-            import julia.Pkg # Don't remove this, we assume Pkg is imported later
+            import julia.Pkg
             LOGGER.info("PyCall, Base, and Main imported")
         except JuliaError as err:
             print("An error occured when initializing Julia.")
-            raise
-        except:
-            raise
+            raise err

@@ -4,11 +4,9 @@ class CallJulia:
 
     def seval(self, code: str):
         """Evaluate `code` in Julia. Only one toplevel statement allowed"""
-        pass
 
     def seval_all(self, code: str):
         """Evaluate `code` in Julia"""
-        pass
 
     # These properties are defined
     # self.julia_path = None
