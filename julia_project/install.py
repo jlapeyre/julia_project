@@ -249,7 +249,7 @@ def _need_resolve(project_path, depot_path):
     proj_time = os.path.getmtime(proj_toml)
     manifest_time = os.path.getmtime(manifest_toml)
     if proj_time > manifest_time:
-        LOGGER.info("need_resolve: Project.toml newer than Manifest.toml")
+        LOGGER.info(f"need_resolve: Project.toml newer than Manifest.toml. Difference: {proj_time - manifest_time}.")
         return (True, manifest_time)
     LOGGER.info("need_resolve: No need to resolve or instantiate found.")
     return (False, manifest_time)
