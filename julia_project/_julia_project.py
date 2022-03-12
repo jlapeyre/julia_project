@@ -90,7 +90,7 @@ class JuliaProject:
                  package_path,
                  registries=None,
                  version_spec=None,
-                 strict_version=True,
+                 strict_version=False,
                  sys_image_dir="sys_image",
                  sys_image_file_base=None,
                  env_prefix="JULIA_PROJECT_",
@@ -160,7 +160,8 @@ class JuliaProject:
         self._init_flags['disabled'] = False
 
 
-    def ensure_init(self, calljulia=None, depot=None, use_sys_image=None):
+    def ensure_init(self, calljulia=None, depot=None, use_sys_image=None,
+                    strict_version=None):
         """
         Initializes the Julia project if it has not yet been initialized.
 
@@ -182,6 +183,8 @@ class JuliaProject:
             _validate_calljulia(calljulia)
             if calljulia is not None:
                 self._calljulia_name = calljulia
+            if strict_version is not None:
+                self.strict_version = strict_version
             self.questions.results['depot'] = depot
             try:
                 self._init_flags['initializing'] = True
@@ -382,7 +385,7 @@ class JuliaProject:
         found_path = find_julia.find_or_install(
             env_var = self._env_vars.envname("JULIA_PATH"),
             answer_yes = (self.questions.results['install'] == True),
-            version_spec = (self.version_spec if self.version_spec else "^1"),
+            version_spec = (self.version_spec if self.version_spec is not None else "^1"),
             post_question_hook = other_questions,
             strict=(self.strict_version if self.strict_version else True)
             )
