@@ -105,7 +105,6 @@ class JuliaProject:
         self.julia_path = None
         self.registries = registries
         self.rel_sys_image_dir = sys_image_dir
-        self.package_sys_image_dir = os.path.join(self.package_path, self.rel_sys_image_dir)
         self.sys_image_file_base = sys_image_file_base # May be None
         self._env_vars = EnvVars(env_prefix)
         self._logging_level = logging_level
@@ -219,14 +218,13 @@ class JuliaProject:
         self.logger.info("Julia version: %s.", self.julia_version)
         self._set_project_path()
         self.sys_image_dir = self._in_project_dir(self.rel_sys_image_dir)
-        if os.path.exists(self.package_sys_image_dir):
+        package_sys_image_dir = os.path.join(self.package_path, self.rel_sys_image_dir)
+        if os.path.exists(package_sys_image_dir):
             self.logger.info(f"Copying/updating installed system image directory {self.sys_image_dir}")
             distutils.dir_util.copy_tree(
-                self.package_sys_image_dir, self.sys_image_dir, update=1)
+                package_sys_image_dir, self.sys_image_dir, update=1)
         else:
-            self.logger.info(f"System image dir source not found at {self.package_sys_image_dir}")
-        # if not os.path.exists(self.sys_image_dir):
-        #     shutil.copytree(self.package_sys_image_dir, self.sys_image_dir)
+            self.logger.info(f"System image dir source not found at {package_sys_image_dir}")
         possible_depot_path = self._in_project_dir("depot")
         if os.path.isdir(possible_depot_path) and not self.questions.results['depot'] is False:
             self.questions.results['depot'] = True
