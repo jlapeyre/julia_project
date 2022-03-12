@@ -47,6 +47,9 @@ def run_julia(commands=None, julia_exe=None, depot_path=None, clog=False, no_std
         if clog:
             print(err.stderr)
         raise err
+    except Exception as err:
+        print("!!!!!!!!!!! Got an err ", type(err))
+        raise err
     finally:
         reset_env_var("JULIA_DEPOT_PATH", old_depot)
     return stdout_output
@@ -139,8 +142,14 @@ def instantiate(project_path, julia_exe=None, depot_path=None, clog=False, packa
         add_pkg_str = ''
     else:
         add_pkg_str = _add_packages_string(packages_to_add)
-    return run_pkg_commands(project_path, add_pkg_str +  '; Pkg.instantiate()',
+    result = run_pkg_commands(project_path, add_pkg_str +  '; Pkg.instantiate()',
                             julia_exe=julia_exe, depot_path=depot_path, clog=clog)
+    manifest_toml = get_manifest_toml(project_path)
+    if manifest_toml is None:
+        raise Exception(f"Instantiation of project failed, no Manifest.toml created in {project_path}.")
+    # For some reason Project.toml ends up slightly more recent, triggering init on next startup
+    touch(manifest_toml)
+    return result
 
 
 def resolve(project_path, julia_exe=None, depot_path=None, clog=False, packages_to_add=None):
@@ -148,15 +157,19 @@ def resolve(project_path, julia_exe=None, depot_path=None, clog=False, packages_
         add_pkg_str = ''
     else:
         add_pkg_str = _add_packages_string(packages_to_add)
-    return run_pkg_commands(project_path, add_pkg_str + '; Pkg.resolve()',
+    result = run_pkg_commands(project_path, add_pkg_str + '; Pkg.resolve()',
                             julia_exe=julia_exe, depot_path=depot_path, clog=clog)
+    manifest_toml = get_manifest_toml(project_path)
+    if manifest_toml is None:
+        raise Exception(f"Instantiation of project failed, no Manifest.toml created in {project_path}.")
+
+    touch(manifest_toml)
+    return result
 
 
 def add_general_registry(project_path, julia_exe=None, depot_path=None, clog=False):
     return run_pkg_commands(project_path, 'Pkg.Registry.add("General")',
                             julia_exe=julia_exe, depot_path=depot_path, clog=clog)
-
-
 
 
 def registry_update(project_path, julia_exe=None, depot_path=None, clog=False):
@@ -174,7 +187,10 @@ def ensure_general_registry(project_path, julia_exe=None, depot_path=None, clog=
         LOGGER.info(msg)
         if clog:
             print(msg)
-        return add_general_registry(project_path, julia_exe=julia_exe, depot_path=depot_path, clog=clog)
+        result = add_general_registry(project_path, julia_exe=julia_exe, depot_path=depot_path, clog=clog)
+        if not is_registry_installed("General.toml", depot_path=depot_path):
+            raise Exception("Installation of General registry failed.")
+        return result
     return None
 
 
@@ -185,7 +201,8 @@ def ensure_registry_from_url(registry_name, registry_url, julia_exe=None, depot_
         if clog:
             print(msg)
         install_registry_from_url(registry_url, julia_exe=julia_exe, depot_path=depot_path, clog=clog)
-
+        if not is_registry_installed(registry_name, depot_path=depot_path):
+            raise Exception(f"Installation of registry {registry_name} failed.")
 
 
 def get_project_toml(proj_dir):
@@ -306,17 +323,18 @@ def ensure_project_ready(project_path=None, julia_exe=None, depot_path=None,
         preinstall_callback()
     ensure_general_registry(project_path, julia_exe=julia_exe, depot_path=depot_path, clog=clog)
     if registries is not None:
+        if not isinstance(registries, dict):
+            raise TypeError(f"registries must be a dict. Got type {type(registries)}.")
         for reg_name in registries.keys():
             url = registries[reg_name]
             ensure_registry_from_url(reg_name, url, julia_exe=julia_exe, depot_path=depot_path, clog=clog)
-    try:
-        msg = "Instantiating project..."
-        LOGGER.info(msg)
-        if clog:
-            print(msg)
-        res = instantiate(project_path, julia_exe=julia_exe, depot_path=depot_path, clog=clog, packages_to_add=needed_packs)
-    except:
-        res = resolve(project_path, julia_exe=julia_exe, depot_path=depot_path, clog=clog)
+    msg = "Instantiating project..."
+    LOGGER.info(msg)
+    if clog:
+        print(msg)
+    res = instantiate(project_path, julia_exe=julia_exe, depot_path=depot_path, clog=clog, packages_to_add=needed_packs)
+#    except: Probably don't want this
+#        res = resolve(project_path, julia_exe=julia_exe, depot_path=depot_path, clog=clog)
 
     if start_manifest_time is not None:
         end_manifest_time = manifest_mtime(project_path)
