@@ -387,7 +387,7 @@ class JuliaProject:
             answer_yes = (self.questions.results['install'] == True),
             version_spec = (self.version_spec if self.version_spec is not None else "^1"),
             post_question_hook = other_questions,
-            strict=(self.strict_version if self.strict_version else True)
+            strict=(self.strict_version if self.strict_version is not None else True)
             )
         if not found_path:
             self.logger.error("No julia executable found or installed.")
