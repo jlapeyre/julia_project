@@ -33,6 +33,11 @@ class PyJulia(CallJulia):
         self.libjulia = None
 
 
+    # @classmethod
+    # def name(cls):
+    #     return "pyjulia"
+
+
     # pylint: disable=no-member
     @classmethod
     def seval(cls, _str):

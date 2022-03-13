@@ -21,7 +21,7 @@ def _get_parent_project_path():
     return os.path.join(env_path, "julia_project")
 
 
-def _calljulia_lib(calljulia, logger=None):
+def _calljulia_lib(calljulia : str, logger=None):
     if calljulia == "pyjulia":
         if logger:
             logger.info("importing PyJulia")
@@ -35,7 +35,7 @@ def _calljulia_lib(calljulia, logger=None):
     raise ValueError(f"calljulia must be 'pyjulia' or 'juliacall'. Got {calljulia}")
 
 
-def _validate_calljulia(calljulia):
+def _validate_calljulia(calljulia : str):
     if calljulia not in ["pyjulia", "juliacall", None]:
         raise ValueError(f'calljulia must be one of "pyjulia", "juliacall", `None`. Got {calljulia}')
 
@@ -101,7 +101,6 @@ class JuliaProject:
 
         self.name = name
         self.package_path = package_path
-        self.julia_src_dir = os.path.join(self.package_path, "julia_src") # TODO get rid of this ??
         self.julia_path = None
         self.registries = registries
         self.rel_sys_image_dir = sys_image_dir
@@ -113,7 +112,6 @@ class JuliaProject:
         self._init_flags = {"initialized": False, "initializing": False, "disabled": False}
         self._post_init_hook = post_init_hook
         os.environ['PYCALL_JL_RUNTIME_PYTHON'] = shutil.which("python")
-        self._find_julia = None # instance of FindJulia
         self.version_spec = version_spec
         self.strict_version = strict_version
         if calljulia is None:
@@ -314,11 +312,8 @@ class JuliaProject:
         # Either `julia` or `juliacall`: The Python/Julia interface module.
         self.julia = self.calljulia.julia
         # Redundant
-#        self.logger.info(f'Is PyCall loaded: {self.julia.Main.is_loaded("PyCall")}')
         self.logger.info(f'PyCall version: {self.julia.Main.pycall_version()}')
-#        self.logger.info(f'Is PythonCall loaded: {self.julia.Main.is_loaded("PythonCall")}')
         self.logger.info(f'PythonCall version: {self.julia.Main.pythoncall_version()}')
-        self.diagnostics_after_init()
         if self.questions.results['compile']:
             self.compile()
         if self._post_init_hook is not None:
@@ -412,21 +407,8 @@ class JuliaProject:
         self.logger.info("Probed Project.toml path: %s", Pkg.project().path)
 
 
-    def diagnostics_after_init(self):
-        # TODO replace several calls for info below using the JuliaInfo object
-        # Import these to reexport
-        # Main = self.calljulia.calljulia.Main
-        # calljulia = self.calljulia.calljulia
-        # self.logger.info("Julia version %s", Main.string(Main.VERSION))
-
-        Main = self.julia.Main
-        self.logger.info("Julia version %s", Main.string(Main.VERSION))
-
-        self.loaded_sys_image_path = self.calljulia.seval('unsafe_string(Base.JLOptions().image_file)')
-        self.logger.info("Probed system image path %s", self.loaded_sys_image_path)
-
-        julia_cmd = self.julia.Base.julia_cmd()
-        self.logger.info("Probed julia command: %s", julia_cmd)
+    def loaded_sys_image(self):
+        return self.calljulia.seval('unsafe_string(Base.JLOptions().image_file)')
 
 
     def compile(self):

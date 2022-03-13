@@ -126,6 +126,11 @@ class JuliaCall(CallJulia):
         self.use_sys_image = use_sys_image
 
 
+
+    # @classmethod
+    # def name(cls):
+    #     return "juliacall"
+
     # bug requires stripping.
     def seval(self, _str):
         return juliacall.Main.seval(_str.strip())
