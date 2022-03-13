@@ -208,7 +208,7 @@ class JuliaProject:
         self.logger.info("JuliaProject.init()")
         self.questions.logger = self.logger
         self.questions.read_environment_variables()
-        self.find_julia()
+        self._find_julia()
         if self.julia_path is None:
             raise FileNotFoundError("No julia executable found")
         self.logger.info(f"julia path: {self.julia_path}")
@@ -247,7 +247,6 @@ class JuliaProject:
                 depot_path = possible_depot_path
             else:
                 depot_path = None
-
 
         def answer_rebuild_callback():
             self.questions.results['depot'] = False # only one or the other
@@ -312,6 +311,7 @@ class JuliaProject:
         # Either `julia` or `juliacall`: The Python/Julia interface module.
         self.julia = self.calljulia.julia
         # Redundant
+        # pylint: disable=no-member
         self.logger.info(f'PyCall version: {self.julia.Main.pycall_version()}')
         self.logger.info(f'PythonCall version: {self.julia.Main.pythoncall_version()}')
         if self.questions.results['compile']:
@@ -365,7 +365,7 @@ class JuliaProject:
         return None
 
 
-    def find_julia(self):
+    def _find_julia(self):
         def other_questions(): # if one question asked, ask all questions at once
             self.questions.ask_question('compile')
             self.questions.ask_question('depot')
@@ -433,6 +433,10 @@ class JuliaProject:
 
 
     def clean_all(self):
+        """
+        Delete the (working) Julia project directory. The next time you load the module, a new project
+        directory will be created and initialized.
+        """
         project_dir = os.path.join(_get_parent_project_path(), self.name + "-" + self.julia_version)
         if project_dir.find("julia_project") < 0:
             raise ValueError("Expecting project path to contain string 'julia_project'")

@@ -32,18 +32,18 @@ def run_julia(commands=None, julia_exe=None, depot_path=None, clog=False, no_std
             depot_path = os.path.abspath(depot_path)
             os.environ["JULIA_DEPOT_PATH"] = depot_path
         stderr_dest = subprocess.DEVNULL if no_stderr else subprocess.STDOUT
-        process = subprocess.Popen(
+        with subprocess.Popen(
             [julia_exe, *std_flags, '-e',  commands],
             stdout=subprocess.PIPE, stderr=stderr_dest, encoding='utf8'
-        )
-        stdout_output = ''
-        while True:
-            output = process.stdout.readline()
-            stdout_output = stdout_output + output # bad accumulation
-            if not no_stderr:
-                sys.stdout.write(output)
-            if process.poll() is not None:
-                break
+        ) as process:
+            stdout_output = ''
+            while True:
+                output = process.stdout.readline()
+                stdout_output = stdout_output + output # bad accumulation
+                if not no_stderr:
+                    sys.stdout.write(output)
+                if process.poll() is not None:
+                    break
     except subprocess.CalledProcessError as err:
         if clog:
             print(err.stderr)
@@ -214,7 +214,6 @@ def get_project_toml(proj_dir):
     if os.path.exists(pt):
         return pt
     return None
-
 
 
 def get_manifest_toml(proj_dir):

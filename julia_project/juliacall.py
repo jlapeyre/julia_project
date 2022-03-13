@@ -124,7 +124,7 @@ class JuliaCall(CallJulia):
         self.julia_system_image = julia_system_image
         self._is_initialized = False
         self.use_sys_image = use_sys_image
-
+        self.libjulia = None
 
 
     # @classmethod
@@ -132,10 +132,12 @@ class JuliaCall(CallJulia):
     #     return "juliacall"
 
     # bug requires stripping.
+    # pylint: disable=no-member
     def seval(self, _str):
         return juliacall.Main.seval(_str.strip())
 
 
+    # pylint: disable=no-member
     def seval_all(self, _str):
         expr = juliacall.Main.Meta.parseall(_str)
         return juliacall.Main.eval(expr)

@@ -105,7 +105,6 @@ def update_copy(src, dest):
         if (not os.path.exists(dest) or
             os.path.getmtime(dest) < os.path.getmtime(src)):
             shutil.copy(src, dest)
-    return None
 
 
 def _project_toml(project_path):
