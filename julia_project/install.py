@@ -92,6 +92,16 @@ def is_registry_installed(name, depot_path=None):
     return os.path.isdir(registry)
 
 
+def is_general_registry_installed(julia_exe, depot_path=None):
+    major, minor, _ = julia_version_parts(julia_exe)
+    if major != '1':
+        raise ValueError("Julia major version is not 1.")
+    if int(minor) > 6:
+        return is_registry_installed("General.toml", depot_path=depot_path)
+    else:
+        return is_registry_installed("General", depot_path=depot_path)
+
+
 # This takes perhaps 2s to run if it errors because Registry is installed.
 def install_registry_from_url(registry_url, julia_exe=None, depot_path=None, clog=False):
     com = f'import Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url = "{registry_url}"))'
@@ -174,7 +184,7 @@ def add_general_registry(project_path, julia_exe=None, depot_path=None, clog=Fal
 
 
 def registry_update(project_path, julia_exe=None, depot_path=None, clog=False):
-    if is_registry_installed("General.toml", depot_path=depot_path):
+    if is_general_registry_installed(julia_exe, depot_path=None):
         com = 'Pkg.Registry.update()'
     else:
         com = 'Pkg.Registry.add("General")'
@@ -182,14 +192,14 @@ def registry_update(project_path, julia_exe=None, depot_path=None, clog=False):
                             julia_exe=julia_exe, depot_path=depot_path, clog=clog)
 
 
-def ensure_general_registry(project_path, julia_exe=None, depot_path=None, clog=False):
-    if not is_registry_installed("General.toml", depot_path=depot_path):
+def ensure_general_registry(project_path, julia_exe, depot_path=None, clog=False):
+    if not is_general_registry_installed(julia_exe, depot_path=depot_path):
         msg = "Installing general registry"
         LOGGER.info(msg)
         if clog:
             print(msg)
         result = add_general_registry(project_path, julia_exe=julia_exe, depot_path=depot_path, clog=clog)
-        if not is_registry_installed("General.toml", depot_path=depot_path):
+        if not is_general_registry_installed(julia_exe, depot_path=depot_path):
             raise Exception("Installation of General registry failed.")
         return result
     return None
@@ -588,3 +598,30 @@ def resolve_incompatibility(incompat_msg=None):
         return "rebuild"
     print(incompat_msg)
     raise Exception(incompat_msg)
+
+
+
+# I copied this from `find_julia` which copied part from elsewhere.
+# I'd like to keep this file independent of `find_julia` and `julia_semver`
+# All the flags to speed things up are probably not necessary.
+# It looks like --version is checked before all the slow stuff happens
+def julia_version(exe):
+    """
+    Return the version of the julia executable `exe` as a string.
+
+    Parameters:
+    exe - the path to a possible Julia executable.
+    """
+    words = subprocess.run(
+        [exe, '-O0', '--startup-file=no', '--history-file=no', '--version'], check=True, capture_output=True, encoding='utf8'
+    ).stdout.strip().split()
+    if len(words) != 3 and words[0] != "julia" and words[1] != "version":
+        raise Exception(f"{exe} is not a julia exectuable")
+    version = words[2]
+    return version
+
+
+def julia_version_parts(exe):
+    version = julia_version(exe)
+    major, minor, patch_and_rest = version.split(".")
+    return major, minor, patch_and_rest
