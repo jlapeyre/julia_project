@@ -1,7 +1,7 @@
 import os
 import logging
 from . import utils
-from . import install
+import julia_project_basic as basic
 
 LOGGER = logging.getLogger('julia_project.system_image') # shorten this?
 
@@ -66,7 +66,7 @@ class JuliaSystemImage:
             print("Exception when compiling system image.")
             raise
         finally:
-            install.reset_env_var("JULIA_PROJECT", old_julia_project)
+            basic.reset_env_var("JULIA_PROJECT", old_julia_project)
             Main.cd(current_path)
             Pkg.activate(current_project)
 
@@ -92,7 +92,7 @@ class JuliaSystemImage:
         os.environ["JULIA_PROJECT"] = self.sys_image_dir
         pycall_loaded = Main.is_loaded("PyCall")
         pythoncall_loaded = Main.is_loaded("PythonCall")
-        deps = install.parse_project(self.sys_image_dir)["deps"].keys() # This is faster
+        deps = basic.parse_project(self.sys_image_dir)["deps"].keys() # This is faster
 #        deps = Main.parse_project()["deps"].keys()
         pycall_in_deps = "PyCall" in deps
         pythoncall_in_deps = "PythonCall" in deps

@@ -21,7 +21,7 @@ def test_min_init():
     assert jp.name == "mymod"
     assert jp.package_path ==  "."
 #    assert jp.env_prefix == "JULIA_PROJECT_"
-    assert jp.registry_url is None
+    assert jp.registries is None
     assert jp.sys_image_file_base == 'sys_mymod'
     assert jp.sys_image_dir == 'sys_image'
     assert jp._console_logging == False
@@ -41,13 +41,13 @@ def test_simple_methods(gen_jp):
 
 
 def test_no_log_handler(gen_jp):
-    gen_jp.setup()
+    gen_jp.ensure_init()()
     assert len(gen_jp.logger.handlers) == 0
 
 
 @mock.patch.dict(os.environ, {"MY_MOD_COMPILE": "y", "MY_MOD_INSTALL_JULIA": "n"})
 def test_env_var_1(gen_jp):
-    gen_jp.setup()
+    gen_jp.ensure_init()
     assert gen_jp._question_results['compile'] == True
     assert gen_jp._question_results['install'] == False
     assert gen_jp._question_results['depot'] == None
@@ -55,7 +55,7 @@ def test_env_var_1(gen_jp):
 
 @mock.patch.dict(os.environ, {"MY_MOD_COMPILE": "n", "MY_MOD_INSTALL_JULIA": "y"})
 def test_env_var_2(gen_jp):
-    gen_jp.setup()
+    gen_jp.ensure_init()()
     assert gen_jp._question_results['compile'] == False
     assert gen_jp._question_results['install'] == True
     assert gen_jp._question_results['depot'] == None
@@ -63,7 +63,7 @@ def test_env_var_2(gen_jp):
 
 @mock.patch.dict(os.environ, {"MY_MOD_COMPILE": "n", "MY_MOD_INSTALL_JULIA": "n", "MY_MOD_DEPOT": "y" })
 def test_env_var_2(gen_jp):
-    gen_jp.setup()
+    gen_jp.ensure_init()()
     assert gen_jp._question_results['compile'] == False
     assert gen_jp._question_results['install'] == False
     assert gen_jp._question_results['depot'] == True
@@ -72,7 +72,7 @@ def test_env_var_2(gen_jp):
 # Non-existing path in env var now raises an error
 # @mock.patch.dict(os.environ, {"MY_MOD_JULIA_PATH": "/a/julia/path"})
 # def test_env_var_3(gen_jp):
-#     gen_jp.setup()
+#     gen_jp.ensure_init()()
 #     gen_jp.find_julia()
 #     assert gen_jp.julia_path == "/a/julia/path"
 #     assert gen_jp._question_results['install'] == False

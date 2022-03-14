@@ -5,7 +5,7 @@ import distutils.dir_util
 import find_julia
 from .julia_system_image import JuliaSystemImage
 from . import utils
-from . import install
+import julia_project_basic as basic
 
 from .environment import EnvVars
 from .questions import ProjectQuestions
@@ -240,7 +240,7 @@ class JuliaProject:
         else:
             depot_path = None
 
-        _need_resolve = install.need_resolve(self.project_path, depot_path)
+        _need_resolve = basic.need_resolve(self.project_path, depot_path)
         if _need_resolve:
             self.questions.ask_questions()
             if self.questions.results['depot'] is True: # May have changed depot
@@ -266,7 +266,7 @@ class JuliaProject:
             packages_to_add = None
 
         if self._calljulia_name != "pyjulia":
-            install.ensure_project_ready(
+            basic.ensure_project_ready(
                 project_path=self.project_path,
                 julia_exe=self.julia_path,
                 depot_path=depot_path,
@@ -276,7 +276,7 @@ class JuliaProject:
                 preinstall_callback=None # we now do this above self.questions.ask_questions,
             )
         else:
-            install.ensure_project_ready_fix_pycall(
+            basic.ensure_project_ready_fix_pycall(
                 project_path=self.project_path,
                 julia_exe=self.julia_path,
                 depot_path=depot_path,
@@ -323,7 +323,7 @@ class JuliaProject:
 
     # For testing. Build PyCall with "wrong" libpython
     def _build_pycall_conda(self):
-        install.rebuild_pycall(
+        basic.rebuild_pycall(
             self.project_path,
             python_exe="conda",
             julia_exe=self.julia_path,
