@@ -1,8 +1,9 @@
+__version__ = "0.1.16"
+
 import os
 import sys
 import ctypes
 import shutil
-from ._version import __version__
 from ._julia_project import JuliaProject
 
 os.environ["PYTHON_JULIACALL_NOINIT"] = "yes"
