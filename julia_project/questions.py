@@ -5,7 +5,7 @@ _QUESTIONS = {'install' : "No Julia installation found. Would you like jill.py t
               'compile' :
 """
 I can compile a system image after installation.
-Compilation may take a few, or many, minutues. You may compile now, later, or never.
+Compilation may take a few, or many, minutes. You may compile now, later, or never.
 Would you like to compile a system image after installation?
 """,
               'depot' :
