@@ -162,10 +162,16 @@ class JuliaProject:
 
 
     def ensure_init(self, calljulia=None, depot=None, use_sys_image=None,
+                    compile=None,
+                    install_julia=None,
+                    julia_path=None,
                     strict_version=None):
         """
         Initializes the Julia project if it has not yet been initialized.
 
+        If an optional parameter is set to a value other than `None`, then it overrides the
+        setting of the corresponding feature elsewhere. If not specified here, they may be
+        set automatically, or by environment variables, or by asking questions.
         Initialization includes searching for the Julia executable, optionally installing it,
         if not found. Resolving package requirements and downloading and installing them.
         Optionally compiling a system image.
@@ -176,7 +182,12 @@ class JuliaProject:
                 directory for this project. If False or None, use the default, common, Julia depot.
                 Using a project-specific depot avoids the possibility that PyCall.jl will be rebuilt
                 frequently if it is used in different projects.
-            sys_image : bool If `False`, then don't load a custom system image, even if it is present.
+            use_sys_image : bool If `False`, then don't load a custom system image, even if it is present.
+            compile : bool Whether to compile a system image after initialization.
+            julia_path : str The path to a Julia executable.
+            install_julia : bool Whether to install julia if no executable is found.
+            strict_version : bool If `True` then pre-release versions will be excluded when searching for
+                the Julia exectuable.
         """
         if not self._init_flags['initialized'] and not self._init_flags['initializing'] and not self._init_flags['disabled']:
             if use_sys_image is not None:
@@ -187,6 +198,12 @@ class JuliaProject:
             if strict_version is not None:
                 self.strict_version = strict_version
             self.questions.results['depot'] = depot
+            self.questions.results['install'] = install_julia
+            if julia_path is not None:
+                self.julia_path = os.path.expanduser(julia_path)
+                self.questions.results['install'] = False
+            self.questions.results['compile'] = compile
+
             try:
                 self._init_flags['initializing'] = True
                 self.init()
@@ -208,7 +225,8 @@ class JuliaProject:
         self.logger.info("JuliaProject.init()")
         self.questions.logger = self.logger
         self.questions.read_environment_variables()
-        self._find_julia()
+        if self.julia_path is None:
+            self._find_julia()
         if self.julia_path is None:
             raise FileNotFoundError("No julia executable found")
         self.logger.info(f"julia path: {self.julia_path}")
