@@ -165,7 +165,9 @@ class JuliaProject:
                     compile=None,
                     install_julia=None,
                     julia_path=None,
-                    strict_version=None):
+                    version_spec=None,
+                    strict_version=None
+                    ):
         """
         Initializes the Julia project if it has not yet been initialized.
 
@@ -203,6 +205,8 @@ class JuliaProject:
                 self.julia_path = os.path.expanduser(julia_path)
                 self.questions.results['install'] = False
             self.questions.results['compile'] = compile
+            if version_spec is not None:
+                self.version_spec = version_spec
 
             try:
                 self._init_flags['initializing'] = True
