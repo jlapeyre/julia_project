@@ -267,6 +267,9 @@ class JuliaProject:
             needed_packages = ["PyCall"]
         elif self._calljulia_name == "juliacall":
             needed_packages = ["PythonCall"]
+            # Only PyCall needs the possibility of a special depot
+            if self.questions.results['depot'] is None:
+                self.questions.results['depot'] = False
         else:
             needed_packages = None
 
@@ -292,9 +295,6 @@ class JuliaProject:
         # ensure that packages, registries, etc. are installed
 
         if self._calljulia_name != "pyjulia":
-            # Only PyCall needs the possibility of a special depot
-            if self.questions.results['depot'] is None:
-                self.questions.results['depot'] = False
             basic.ensure_project_ready(
                 project_path=self.project_path,
                 julia_exe=self.julia_path,
