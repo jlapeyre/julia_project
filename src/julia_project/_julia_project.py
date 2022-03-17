@@ -262,8 +262,18 @@ class JuliaProject:
         else:
             depot_path = None
 
+
+        if self._calljulia_name == "pyjulia":
+            needed_packages = ["PyCall"]
+        elif self._calljulia_name == "juliacall":
+            needed_packages = ["PythonCall"]
+        else:
+            needed_packages = None
+
+
         _need_resolve = basic.need_resolve(self.project_path, depot_path)
-        if _need_resolve:
+        _packages_to_add = basic.packages_to_add(self.project_path, needed_packages)
+        if _need_resolve or _packages_to_add:
             self.questions.ask_questions()
             if self.questions.results['depot'] is True: # May have changed depot
                 depot_path = possible_depot_path
@@ -278,22 +288,19 @@ class JuliaProject:
             self.questions.results['depot'] = True
             self.questions.ask_questions()
 
+
         # ensure that packages, registries, etc. are installed
 
-        if self._calljulia_name == "pyjulia":
-            packages_to_add = ["PyCall"]
-        elif self._calljulia_name == "juliacall":
-            packages_to_add = ["PythonCall"]
-        else:
-            packages_to_add = None
-
         if self._calljulia_name != "pyjulia":
+            # Only PyCall needs the possibility of a special depot
+            if self.questions.results['depot'] is None:
+                self.questions.results['depot'] = False
             basic.ensure_project_ready(
                 project_path=self.project_path,
                 julia_exe=self.julia_path,
                 depot_path=depot_path,
                 registries=self.registries,
-                packages_to_add=packages_to_add,
+                needed_packages=needed_packages,
                 clog=True,
                 preinstall_callback=None # we now do this above self.questions.ask_questions,
             )
@@ -304,7 +311,7 @@ class JuliaProject:
                 depot_path=depot_path,
                 possible_depot_path=possible_depot_path,
                 registries=self.registries,
-                packages_to_add=packages_to_add,
+                needed_packages=needed_packages,
                 clog=True,
                 preinstall_callback=self.questions.ask_questions,
                 question_callback=None, # self.questions.deal_with_incompatibility,
