@@ -88,7 +88,7 @@ class JuliaProject:
                  package_path,
                  registries=None,
                  version_spec=None,
-                 strict_version=False,
+                 strict_version=True,
                  sys_image_dir="sys_image",
                  sys_image_file_base=None,
                  env_prefix="JULIA_PROJECT_",

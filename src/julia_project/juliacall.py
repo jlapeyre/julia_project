@@ -143,6 +143,10 @@ class JuliaCall(CallJulia):
         return juliacall.Main.eval(expr)
 
 
+    def beval(self, _str):
+        return self.libjulia.libjulia.jl_eval_string(_str.encode('utf8'))
+
+
     def simple_import(self, module : str):
         """
         import the julia module `module` and return the python-wrapped module.
