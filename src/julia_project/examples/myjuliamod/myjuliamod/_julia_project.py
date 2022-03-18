@@ -29,5 +29,5 @@ project = JuliaProject(
     post_init_hook=_after_init_func, # Run this after ensure_init
 #    registries = {"Bogus" : "http://badurlbogus.com"}
 #    calljulia_lib = "pyjulia"
-#    calljulia = "juliacall"
+    calljulia = "juliacall"
 )

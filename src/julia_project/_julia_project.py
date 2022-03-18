@@ -199,7 +199,11 @@ class JuliaProject:
                 self._calljulia_name = calljulia
             if strict_version is not None:
                 self.strict_version = strict_version
-            self.questions.results['depot'] = depot
+            if depot is not None:
+                self.questions.results['depot'] = depot
+            if depot is None and self._calljulia_name == "juliacall":
+                # Only PyCall needs the possibility of a special depot
+                self.questions.results['depot'] = False
             self.questions.results['install'] = install_julia
             if julia_path is not None:
                 self.julia_path = os.path.expanduser(julia_path)
@@ -267,9 +271,10 @@ class JuliaProject:
             needed_packages = ["PyCall"]
         elif self._calljulia_name == "juliacall":
             needed_packages = ["PythonCall"]
+            # We do this above. So comment it out and test.
             # Only PyCall needs the possibility of a special depot
-            if self.questions.results['depot'] is None:
-                self.questions.results['depot'] = False
+            # if self.questions.results['depot'] is None:
+            #     self.questions.results['depot'] = False
         else:
             needed_packages = None
 
