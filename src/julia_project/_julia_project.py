@@ -120,7 +120,6 @@ class JuliaProject:
         self._calljulia_name = calljulia
         self._use_sys_image = None
         self.logger = None # TODO: Use global LOGGER
-        self.loaded_sys_image_path = None
         self.log_file_path = None # TODO: can we git rid of this?
         self.julia = None # TODO: We need a better name for this. Its value is either julia or juliacall
         self.calljulia = None
