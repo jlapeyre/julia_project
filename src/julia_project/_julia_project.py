@@ -1,8 +1,10 @@
 import logging
 import os
 import shutil
+import warnings
 import distutils.dir_util
 import find_julia
+import julia.find_libpython
 from .julia_system_image import JuliaSystemImage
 from . import utils
 import julia_project_basic as basic
@@ -131,7 +133,6 @@ class JuliaProject:
         self.project_path = None
 
 
-
     def _in_package_dir(self, rel_path):
         """Return absolute path from path relative to installation dir."""
         return os.path.join(self.package_path, rel_path)
@@ -155,11 +156,37 @@ class JuliaProject:
 
 
     def disable_init(self):
+        """Make calling `ensure_init` do nothing.
+        Returns `True` if `ensure_init` was already disabled before calling `disable_init`.
+        Otherwise returns `False`. By default, `ensure_init` is enabled.
+        """
+        if self.is_initialized:
+            raise RuntimeError(
+                "This JuliaProject is already initialized. Disabling initialization makes no sense."
+            )
+        old_val = self._init_flags['disabled']
         self._init_flags['disabled'] = True
+        return old_val
 
 
     def enable_init(self):
+        """Enable normal operation of calls to `ensure_init`.
+        Returns `True` if `ensure_init` was disabled before calling `enable_init`.
+        Otherwise returns `False`. By default, `ensure_init` is enabled.
+        """
+        if self.is_initialized:
+            raise RuntimeError(
+                "This JuliaProject is already initialized. Enabling initialization makes no sense."
+            )
+        old_val = self._init_flags['disabled']
         self._init_flags['disabled'] = False
+        return old_val
+
+
+    @property
+    def is_initialized(self):
+        """This property has value `True` if `ensure_init` has been called and no errors were detected."""
+        return self._init_flags['initialized']
 
 
     def ensure_init(self, calljulia=None, depot=None, use_sys_image=None,
@@ -173,25 +200,35 @@ class JuliaProject:
         """
         Initializes the Julia project if it has not yet been initialized.
 
-        If an optional parameter is set to a value other than `None`, then it overrides the
-        setting of the corresponding feature elsewhere. If not specified here, they may be
-        set automatically, or by environment variables, or by asking questions.
-        Initialization includes searching for the Julia executable, optionally installing it,
-        if not found. Resolving package requirements and downloading and installing them.
-        Optionally compiling a system image.
+        If any optional parameter is set to a value other than `None`, then it overrides the
+        setting of the corresponding parameter elsewhere, in particular in the creation of the
+        `JuliaProject` instance. If not specified here, they may be set automatically, or by
+        environment variables, or by asking questions.  Initialization includes searching for the
+        Julia executable, optionally installing it, if not found. Resolving package requirements
+        and downloading and installing them. Optionally compiling a system image.
+
+        Subequent calls to `ensure_init` do nothing. The exception is if you call `ensure_init`
+        again with a different value of `calljulia`, which will raise a `ValueError`.
 
         Args:
             calljulia : str The interface library to use, either "pyjuia" or "juliacall". Default "pyjulia"
+
             depot : bool If True, install a Julia depot (where packages are stored) in the data
                 directory for this project. If False or None, use the default, common, Julia depot.
                 Using a project-specific depot avoids the possibility that PyCall.jl will be rebuilt
                 frequently if it is used in different projects.
+
             use_sys_image : bool If `False`, then don't load a custom system image, even if it is present.
+
             compile : bool Whether to compile a system image after initialization.
+
             julia_path : str The path to a Julia executable.
+
             install_julia : bool Whether to install julia if no executable is found.
+
             pre_instantiate_cmds : str a string of Julia commands that will be executed immediately before
-            instantating the project. `Pkg` will be imported before they are executed.
+                   instantating the project. `Pkg` will be imported before they are executed.
+
             strict_version : bool If `True` then pre-release versions will be excluded when searching for
                 the Julia exectuable.
         """
@@ -201,6 +238,17 @@ class JuliaProject:
             _validate_calljulia(calljulia)
             if calljulia is not None:
                 self._calljulia_name = calljulia
+            if (self._calljulia_name == "pyjulia" and
+                julia.find_libpython.linked_libpython() is None):
+                warnings.warn(
+"""
+Your python executable is statically linked to libpython and you (or a package
+author) have requested the Python module `julia` from the package `pyjulia`. The
+module `julia` requires a dynamically linked python executable. The module
+`juliacall` from the package `juliacall` will be used instead. This may not be
+compatible with package that created this instance of JuliaProject.
+""")
+                self._calljulia_name = "juliacall"
             if strict_version is not None:
                 self.strict_version = strict_version
             if depot is not None:
@@ -222,6 +270,7 @@ class JuliaProject:
                 self.init()
             finally:
                 self._init_flags['initializing'] = False
+        # Reiniting is a no-op, but r
         elif self._init_flags['initialized'] and calljulia is not None:
             incompat_reinit = ((self.julia.__name__ == 'julia' and calljulia != 'pyjulia')
                                or
@@ -362,6 +411,29 @@ class JuliaProject:
         self._init_flags['initialized'] = True
 
 
+    @property
+    def using_pyjulia(self):
+        """Has value `True` only if this instance of `JuliaProject` is using or will use `pyjulia` (the
+        Python module `julia`).
+
+        Under some circumstances this may change between between creating the `JuliaProject`
+        instance and calling `ensure_init`.
+        """
+        assert self._calljulia_name
+        return self._calljulia_name == "pyjulia"
+
+
+    @property
+    def using_juliacall(self):
+        """Has value `True` only if this instance of `JuliaProject` is using or will use `juliacall`.
+
+        Under some circumstances this may change between between creating the `JuliaProject`
+        instance and calling `ensure_init`.
+        """
+        assert self._calljulia_name
+        return self._calljulia_name == "juliacall"
+
+
     # For testing. Build PyCall with "wrong" libpython
     def _build_pycall_conda(self):
         basic.rebuild_pycall(
@@ -448,7 +520,13 @@ class JuliaProject:
         self.logger.info("Probed Project.toml path: %s", Pkg.project().path)
 
 
+    @property
     def loaded_sys_image(self):
+        """The path to the Julia system image as reported by the running libjulia."""
+        if not self.is_initialized:
+            raise AttributeError(
+                "loaded_sys_image is not defined. The project has not been initialized."
+            )
         return self.calljulia.seval('unsafe_string(Base.JLOptions().image_file)')
 
 
