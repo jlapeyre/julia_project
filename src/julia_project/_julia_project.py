@@ -94,6 +94,7 @@ class JuliaProject:
                  env_prefix="JULIA_PROJECT_",
                  depot=None,
                  post_init_hook=None,
+                 pre_instantiate_cmds=None,
                  logging_level=None,
                  console_logging=False,
                  calljulia = "pyjulia",
@@ -111,6 +112,7 @@ class JuliaProject:
         self.questions = ProjectQuestions(depot=depot, env_vars=self._env_vars)
         self._init_flags = {"initialized": False, "initializing": False, "disabled": False}
         self._post_init_hook = post_init_hook
+        self._pre_instantiate_cmds = pre_instantiate_cmds
         os.environ['PYCALL_JL_RUNTIME_PYTHON'] = shutil.which("python")
         self.version_spec = version_spec
         self.strict_version = strict_version
@@ -165,7 +167,8 @@ class JuliaProject:
                     install_julia=None,
                     julia_path=None,
                     version_spec=None,
-                    strict_version=None
+                    strict_version=None,
+                    pre_instantiate_cmds=None
                     ):
         """
         Initializes the Julia project if it has not yet been initialized.
@@ -187,6 +190,8 @@ class JuliaProject:
             compile : bool Whether to compile a system image after initialization.
             julia_path : str The path to a Julia executable.
             install_julia : bool Whether to install julia if no executable is found.
+            pre_instantiate_cmds : str a string of Julia commands that will be executed immediately before
+            instantating the project. `Pkg` will be imported before they are executed.
             strict_version : bool If `True` then pre-release versions will be excluded when searching for
                 the Julia exectuable.
         """
@@ -210,6 +215,7 @@ class JuliaProject:
             self.questions.results['compile'] = compile
             if version_spec is not None:
                 self.version_spec = version_spec
+            self._pre_instantiate_cmds = pre_instantiate_cmds
 
             try:
                 self._init_flags['initializing'] = True
@@ -305,8 +311,9 @@ class JuliaProject:
                 depot_path=depot_path,
                 registries=self.registries,
                 needed_packages=needed_packages,
+                pre_instantiate_cmds=self._pre_instantiate_cmds,
                 clog=True,
-                preinstall_callback=None # we now do this above self.questions.ask_questions,
+                pre_install_callback=None # we now do this above self.questions.ask_questions,
             )
         else:
             basic.ensure_project_ready_fix_pycall(
@@ -316,8 +323,9 @@ class JuliaProject:
                 possible_depot_path=possible_depot_path,
                 registries=self.registries,
                 needed_packages=needed_packages,
+                pre_instantiate_cmds=self._pre_instantiate_cmds,
                 clog=True,
-                preinstall_callback=self.questions.ask_questions,
+                pre_install_callback=self.questions.ask_questions,
                 question_callback=None, # self.questions.deal_with_incompatibility,
                 answer_rebuild_callback=answer_rebuild_callback,
                 answer_depot_callback=answer_depot_callback
