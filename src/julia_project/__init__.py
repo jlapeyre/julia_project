@@ -1,4 +1,4 @@
-__version__ = "0.1.22"
+__version__ = "0.1.23"
 
 import os
 import sys
@@ -7,8 +7,8 @@ import shutil
 from ._julia_project import JuliaProject
 
 os.environ["PYTHON_JULIACALL_NOINIT"] = "yes"
-os.environ["JULIA_PYTHONCALL_EXE"] = sys.executable or '' # When does the latter occur?
-os.environ['JULIA_PYTHONCALL_LIBPTR'] = str(ctypes.pythonapi._handle)
+os.environ["JULIA_PYTHONCALL_EXE"] = sys.executable or ''
+os.environ['JULIA_PYTHONCALL_LIBPTR'] = str(ctypes.pythonapi._handle) or ''
 os.environ['PYTHON'] = shutil.which("python") or ''
 
 # This is only for debugging

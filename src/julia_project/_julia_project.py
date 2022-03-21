@@ -115,7 +115,7 @@ class JuliaProject:
         self._init_flags = {"initialized": False, "initializing": False, "disabled": False}
         self._post_init_hook = post_init_hook
         self._pre_instantiate_cmds = pre_instantiate_cmds
-        os.environ['PYCALL_JL_RUNTIME_PYTHON'] = shutil.which("python")
+        os.environ['PYCALL_JL_RUNTIME_PYTHON'] = shutil.which("python") or ''
         self.version_spec = version_spec
         self.strict_version = strict_version
         if calljulia is None:
@@ -145,6 +145,7 @@ class JuliaProject:
     def _set_project_path(self):
         self.project_path = os.path.join(_get_parent_project_path(), self.name + "-" + self.julia_version)
         os.makedirs(self.project_path, exist_ok = True)
+        assert self.project_path is not None
         os.environ["JULIA_PROJECT"] = self.project_path
         self.logger.info(f'os.environ["JULIA_PROJECT"] = {self.project_path}')
         utils.update_copy(self._in_package_dir("Project.toml"), self._in_project_dir("Project.toml"))
@@ -381,6 +382,7 @@ compatible with package that created this instance of JuliaProject.
             )
 
         if self.questions.results['depot'] is True:
+            assert possible_depot_path is not None
             os.environ["JULIA_DEPOT_PATH"] = possible_depot_path
             self.logger.info(f"Using private depot '{possible_depot_path}'")
         else:

@@ -20,8 +20,8 @@ LOGGER.info("importing julia_project/juliacall")
 
 
 def load_libjulia(julia_path,
-         project_path=None,
-         system_image=None):
+                  project_path,
+                  system_image=None):
     # Find the Julia executable and project
     CONFIG['exepath'] = exepath = julia_path # juliapkg.executable()
     CONFIG['project'] = project = project_path # juliapkg.project()
@@ -39,6 +39,7 @@ def load_libjulia(julia_path,
     julia_toplevel = os.path.dirname(os.path.dirname(libjulia_path))
     bindir = os.path.realpath(os.path.join(julia_toplevel, "bin"))
 
+    assert project is not None
     try:
         os.chdir(os.path.dirname(libjulia_path))
         CONFIG['lib'] = libjulia = ctypes.PyDLL(libjulia_path, ctypes.RTLD_GLOBAL) # <-- avoids segfault
@@ -167,9 +168,10 @@ class JuliaCall(CallJulia):
                 system_image = None
             libjulia, libjulia_path, bindir = load_libjulia(
                 self.julia_path,
-                project_path=self.project_path,
+                self.project_path,
                 system_image=system_image
             )
+            assert isinstance(self.project_path, str)
             init_pythoncall(libjulia, self.project_path)
             self.libjulia = lib.LibJulia(libjulia, libjulia_path, bindir)
             self._is_initialized = True
