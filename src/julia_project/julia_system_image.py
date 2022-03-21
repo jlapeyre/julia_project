@@ -88,6 +88,7 @@ class JuliaSystemImage:
         for _file in [self._in_sys_image_dir("Manifest.toml"), self._in_sys_image_dir("JuliaManifest.toml")]:
             utils.maybe_remove(_file)
         Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
+        assert isinstance(self.sys_image_dir, str)
         Pkg.activate(self.sys_image_dir)
         os.environ["JULIA_PROJECT"] = self.sys_image_dir
         pycall_loaded = Main.is_loaded("PyCall")
