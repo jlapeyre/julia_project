@@ -46,7 +46,11 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        choice = input().lower()
+        try:
+            choice = input().lower()
+        except KeyboardInterrupt as err:
+            print(f"Got {err}")
+            return None
         if default is not None and choice == '':
             return valid[default]
         if choice in valid:

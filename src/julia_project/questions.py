@@ -38,13 +38,20 @@ class ProjectQuestions:
     def ask_question(self, question_key):
         if self.results[question_key] is None:
             result = utils.query_yes_no(_QUESTIONS[question_key])
-            self.results[question_key] = result
-            self.logger.info(f"Question '{question_key}', answered {result}")
+            if result is not None:
+                self.results[question_key] = result
+                self.logger.info(f"Question '{question_key}', answered {result}")
+                return result
+            else:
+                self.logger.info(f"Question '{question_key}', not answered. Possibly interrupted.")
+                return None
 
 
     def ask_questions(self):
+        result = None
         for q in self.results:
-            self.ask_question(q)
+            result = self.ask_question(q)
+        return result
 
 
     def _read_one_variable(self, var_base_name, question_key):

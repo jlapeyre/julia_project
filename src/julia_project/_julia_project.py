@@ -233,7 +233,9 @@ class JuliaProject:
             strict_version : bool If `True` then pre-release versions will be excluded when searching for
                 the Julia exectuable.
         """
-        if not self._init_flags['initialized'] and not self._init_flags['initializing'] and not self._init_flags['disabled']:
+        if not self._init_flags['initialized'] and not self._init_flags['disabled']:
+            if self._init_flags['initializing']:
+                print("Initialization was aborted or failed. Trying again.")
             if use_sys_image is not None:
                 self._use_sys_image = use_sys_image
             _validate_calljulia(calljulia)
@@ -257,11 +259,13 @@ compatible with package that created this instance of JuliaProject.
             if depot is None and self._calljulia_name == "juliacall":
                 # Only PyCall needs the possibility of a special depot
                 self.questions.results['depot'] = False
-            self.questions.results['install'] = install_julia
+            if install_julia is not None:
+                self.questions.results['install'] = install_julia
             if julia_path is not None:
                 self.julia_path = os.path.expanduser(julia_path)
                 self.questions.results['install'] = False
-            self.questions.results['compile'] = compile
+            if compile is not None:
+                self.questions.results['compile'] = compile
             if version_spec is not None:
                 self.version_spec = version_spec
             self._pre_instantiate_cmds = pre_instantiate_cmds
@@ -269,9 +273,13 @@ compatible with package that created this instance of JuliaProject.
             try:
                 self._init_flags['initializing'] = True
                 self.init()
+            except:
+                print("Initialization failed. You may try running again")
+                raise
             finally:
-                self._init_flags['initializing'] = False
-        # Reiniting is a no-op, but r
+                pass
+#                self._init_flags['initializing'] = False
+        # Reiniting is a no-op
         elif self._init_flags['initialized'] and calljulia is not None:
             incompat_reinit = ((self.julia.__name__ == 'julia' and calljulia != 'pyjulia')
                                or
@@ -352,8 +360,8 @@ compatible with package that created this instance of JuliaProject.
             self.questions.ask_questions()
 
 
+        # print(f"Questions are {self.questions.results}")
         # ensure that packages, registries, etc. are installed
-
         if self._calljulia_name != "pyjulia":
             basic.ensure_project_ready(
                 project_path=self.project_path,
@@ -532,13 +540,38 @@ compatible with package that created this instance of JuliaProject.
         return self.calljulia.seval('unsafe_string(Base.JLOptions().image_file)')
 
 
+    @property
+    def using_custom_sys_image(self):
+        """Takes value `True` if a custom system image is loaded.
+
+        If the stock (or unknown) system image is loaded, takes value `False`. Otherwise raise
+        an error on accessing.
+        """
+        loaded = self.loaded_sys_image
+        if self.julia_system_image is None:
+            raise AttributeError(
+                "JuliaSystemImage is not yet created, but system is initialized. Please file a bug report"
+            )
+        loaded_dir = os.path.dirname(loaded)
+        return loaded_dir == self.julia_system_image.sys_image_dir
+
+
     def compile(self):
         """
         Compile a system image for the dependent Julia packages in the subdirectory `./sys_image/`. This
         system image will be loaded the next time you import the Python module.
         """
         self.ensure_init()
-        self.julia_system_image.compile()
+        if self.using_custom_sys_image:
+            warnings.warn("""
+You are requesting compiling a custom system image while running a custom-compiled system
+image, but this is not safe and not allowed. If you really want to compile a new system
+image, please restart your project, passing the keyword argument "use_system_image=False"
+to `the method project.ensure_init()`. Then call the method `project.compile()` again.
+Alternativley, you can call the method `project.clean()` and restart.
+""")
+        else:
+            self.julia_system_image.compile()
 
 
     def clean(self):
