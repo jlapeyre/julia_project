@@ -567,7 +567,7 @@ compatible with package that created this instance of JuliaProject.
 You are requesting compiling a custom system image while running a custom-compiled system
 image, but this is not safe and not allowed. If you really want to compile a new system
 image, please restart your project, passing the keyword argument "use_system_image=False"
-to `the method project.ensure_init()`. Then call the method `project.compile()` again.
+to the method `project.ensure_init()`. Then call the method `project.compile()` again.
 Alternativley, you can call the method `project.clean()` and restart.
 """)
         else:
