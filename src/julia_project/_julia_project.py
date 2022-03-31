@@ -416,9 +416,11 @@ compatible with package that created this instance of JuliaProject.
         self.logger.info(f'PythonCall version: {self.julia.Main.pythoncall_version()}')
         if self.questions.results['compile']:
             self.compile()
+        self._init_flags['initialized'] = True
+        # Note that we consider initialization to have succeeded before we run the post_init_hook
         if self._post_init_hook is not None:
             self._post_init_hook()
-        self._init_flags['initialized'] = True
+
 
 
     @property
