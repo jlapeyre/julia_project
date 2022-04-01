@@ -233,9 +233,9 @@ class JuliaProject:
             strict_version : bool If `True` then pre-release versions will be excluded when searching for
                 the Julia exectuable.
         """
-        if not self._init_flags['initialized'] and not self._init_flags['disabled']:
-            if self._init_flags['initializing']:
-                print("Initialization was aborted or failed. Trying again.")
+        if not self._init_flags['initialized'] and not self._init_flags['disabled'] and not self._init_flags['initializing']:
+            # if self._init_flags['initializing']:
+            #     print("Initialization was aborted or failed. Trying again.")
             if use_sys_image is not None:
                 self._use_sys_image = use_sys_image
             _validate_calljulia(calljulia)
@@ -277,8 +277,7 @@ compatible with package that created this instance of JuliaProject.
                 print("Initialization failed. You may try running again")
                 raise
             finally:
-                pass
-#                self._init_flags['initializing'] = False
+                self._init_flags['initializing'] = False
         # Reiniting is a no-op
         elif self._init_flags['initialized'] and calljulia is not None:
             incompat_reinit = ((self.julia.__name__ == 'julia' and calljulia != 'pyjulia')
@@ -414,13 +413,13 @@ compatible with package that created this instance of JuliaProject.
         # pylint: disable=no-member
         self.logger.info(f'PyCall version: {self.julia.Main.pycall_version()}')
         self.logger.info(f'PythonCall version: {self.julia.Main.pythoncall_version()}')
-        if self.questions.results['compile']:
-            self.compile()
-        self._init_flags['initialized'] = True
-        # Note that we consider initialization to have succeeded before we run the post_init_hook
         if self._post_init_hook is not None:
             self._post_init_hook()
-
+        self._init_flags['initialized'] = True
+        # Note that we consider initialization to have succeeded before we run the compilation
+        # But, the post_init_hook is part of initialization
+        if self.questions.results['compile']:
+            self.compile()
 
 
     @property
@@ -593,6 +592,7 @@ Alternativley, you can call the method `project.clean()` and restart.
         Delete the (working) Julia project directory. The next time you load the module, a new project
         directory will be created and initialized.
         """
+        self.ensure_init()
         project_dir = os.path.join(_get_parent_project_path(), self.name + "-" + self.julia_version)
         if project_dir.find("julia_project") < 0:
             raise ValueError("Expecting project path to contain string 'julia_project'")
