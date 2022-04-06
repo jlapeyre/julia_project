@@ -13,6 +13,8 @@ class JuliaSystemImage:
     def __init__(self,
                  name,
                  sys_image_dir, # Absolute, not relative path!
+                 julia_path,
+                 project_path,
                  julia_version = None,
                  sys_image_file_base=None,
                  ):
@@ -28,6 +30,8 @@ class JuliaSystemImage:
         )
         self.compiled_system_image = self._in_sys_image_dir("sys_julia_project" + utils.SHLIB_SUFFIX)
         self.calljulia = None # Can't pass this. It must be set later.
+        self.julia_path = julia_path
+        self.project_path = project_path
 
 
     # This must be set after __init__, because calljulia is instantiated with data from self
@@ -73,13 +77,17 @@ class JuliaSystemImage:
 
     def _ensure_pycall_pythoncall_imported(self):
         Pkg = self.calljulia.julia.Pkg
-        project_path = Pkg.project().path
+        project_path = self.project_path
         deps = basic.parse_project(project_path)["deps"].keys()
-        if not "PyCall" in deps:
+        depot_path = self.calljulia.Main.DEPOT_PATH[0]
+        pycall_ok = basic.test_pycall(
+            project_path, self.julia_path, depot_path=depot_path
+        )["pycall_ok"]
+        if not "PyCall" in deps and julia.find_libpython.linked_libpython() is not None and pycall_ok:
             Pkg.add("PyCall")
+            self.calljulia.simple_import("PyCall")
         if not "PythonCall" in deps:
             Pkg.add("PythonCall")
-        self.calljulia.simple_import("PyCall")
         import juliacall  # Otherwise import below fails
         self.calljulia.simple_import("PythonCall")
 

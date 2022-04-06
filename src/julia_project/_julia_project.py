@@ -131,6 +131,7 @@ class JuliaProject:
         self.sys_image_dir = None
         self.julia_version = None
         self.project_path = None
+        self.depot_path = None
 
 
     def _in_package_dir(self, rel_path):
@@ -321,18 +322,22 @@ compatible with package that created this instance of JuliaProject.
             # Only PyCall needs the possibility of a special depot
             # Not clear whether to ask in the case of juliacall or not
             self.questions.results['depot'] = False
+
+        if self.questions.results['depot'] is True:
+            self.depot_path = possible_depot_path
+        else:
+            self.depot_path = None
+
         self.julia_system_image = JuliaSystemImage(
             self.name,
             sys_image_dir=self.sys_image_dir,
+            julia_path = self.julia_path,
+            project_path = self.project_path,
             sys_image_file_base=self.sys_image_file_base,
             julia_version = self.julia_version,
             )
         calljulia_lib = _calljulia_lib(self._calljulia_name, self.logger)
 
-        if self.questions.results['depot'] is True:
-            depot_path = possible_depot_path
-        else:
-            depot_path = None
 
 
         if self._calljulia_name == "pyjulia":
@@ -347,14 +352,14 @@ compatible with package that created this instance of JuliaProject.
             needed_packages = None
 
 
-        _need_resolve = basic.need_resolve(self.project_path, depot_path)
+        _need_resolve = basic.need_resolve(self.project_path, self.depot_path)
         _packages_to_add = basic.packages_to_add(self.project_path, needed_packages)
         if _need_resolve or _packages_to_add:
             self.questions.ask_questions()
             if self.questions.results['depot'] is True: # May have changed depot
-                depot_path = possible_depot_path
+                self.depot_path = possible_depot_path
             else:
-                depot_path = None
+                self.depot_path = None
 
         def answer_rebuild_callback():
             self.questions.results['depot'] = False # only one or the other
@@ -371,7 +376,7 @@ compatible with package that created this instance of JuliaProject.
             basic.ensure_project_ready(
                 project_path=self.project_path,
                 julia_exe=self.julia_path,
-                depot_path=depot_path,
+                depot_path=self.depot_path,
                 registries=self.registries,
                 needed_packages=needed_packages,
                 pre_instantiate_cmds=self._pre_instantiate_cmds,
@@ -382,7 +387,7 @@ compatible with package that created this instance of JuliaProject.
             basic.ensure_project_ready_fix_pycall(
                 project_path=self.project_path,
                 julia_exe=self.julia_path,
-                depot_path=depot_path,
+                depot_path=self.depot_path,
                 possible_depot_path=possible_depot_path,
                 registries=self.registries,
                 needed_packages=needed_packages,
