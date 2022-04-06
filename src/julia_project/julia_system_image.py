@@ -71,6 +71,19 @@ class JuliaSystemImage:
             Pkg.activate(current_project)
 
 
+    def _ensure_pycall_pythoncall_imported(self):
+        Pkg = self.calljulia.julia.Pkg
+        project_path = Pkg.project().path
+        deps = basic.parse_project(project_path)["deps"].keys()
+        if not "PyCall" in deps:
+            Pkg.add("PyCall")
+        if not "PythonCall" in deps:
+            Pkg.add("PythonCall")
+        self.calljulia.simple_import("PyCall")
+        import juliacall  # Otherwise import below fails
+        self.calljulia.simple_import("PythonCall")
+
+
     def _compile(self):
         """
         Compile a Julia system image with all requirements for the julia project.
@@ -85,6 +98,9 @@ class JuliaSystemImage:
             msg = utils.no_project_toml_message(self.sys_image_dir)
             LOGGER.error(msg)
             raise FileNotFoundError(msg)
+
+        self._ensure_pycall_pythoncall_imported()
+
         for _file in [self._in_sys_image_dir("Manifest.toml"), self._in_sys_image_dir("JuliaManifest.toml")]:
             utils.maybe_remove(_file)
         Main.eval('ENV["PYCALL_JL_RUNTIME_PYTHON"] = Sys.which("python")')
@@ -97,18 +113,15 @@ class JuliaSystemImage:
 #        deps = Main.parse_project()["deps"].keys()
         pycall_in_deps = "PyCall" in deps
         pythoncall_in_deps = "PythonCall" in deps
-        if pycall_loaded:
-            if not pycall_in_deps:
-                Pkg.add("PyCall")
-        else:
-            if pycall_in_deps:
-                Pkg.rm("PyCall")
-        if pythoncall_loaded:
-            if not pythoncall_in_deps:
-                Pkg.add("PythonCall")
-        else:
-            if pythoncall_in_deps:
-                Pkg.rm("PythonCall")
+        # Let's try always including both of these. This might prevent crashes when
+        # creating sys image with one of them, and loading it with the other
+        if not pycall_in_deps:
+            Pkg.add("PyCall")
+        if not pythoncall_in_deps:
+            Pkg.add("PythonCall")
+        self.calljulia.simple_import("PyCall")
+        import juliacall
+        self.calljulia.simple_import("PythonCall")
         LOGGER.info("Compiling: probed Project.toml path: %s", Pkg.project().path)
         Main.cd(self.sys_image_dir)
         try:
