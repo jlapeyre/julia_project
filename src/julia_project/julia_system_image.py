@@ -79,7 +79,7 @@ class JuliaSystemImage:
         Pkg = self.calljulia.julia.Pkg
         project_path = self.project_path
         deps = basic.parse_project(project_path)["deps"].keys()
-        depot_path = self.calljulia.Main.DEPOT_PATH[0]
+        depot_path = self.calljulia.julia.Main.DEPOT_PATH[0]
         pycall_ok = basic.test_pycall(
             project_path, self.julia_path, depot_path=depot_path
         )["pycall_ok"]
@@ -123,11 +123,11 @@ class JuliaSystemImage:
         pythoncall_in_deps = "PythonCall" in deps
         # Let's try always including both of these. This might prevent crashes when
         # creating sys image with one of them, and loading it with the other
-        if not pycall_in_deps:
+        if pycall_loaded and not pycall_in_deps:
             Pkg.add("PyCall")
+            self.calljulia.simple_import("PyCall")
         if not pythoncall_in_deps:
             Pkg.add("PythonCall")
-        self.calljulia.simple_import("PyCall")
         import juliacall
         self.calljulia.simple_import("PythonCall")
         LOGGER.info("Compiling: probed Project.toml path: %s", Pkg.project().path)
