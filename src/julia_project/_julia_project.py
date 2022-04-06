@@ -190,7 +190,10 @@ class JuliaProject:
         return self._init_flags['initialized']
 
 
-    def ensure_init(self, calljulia=None, depot=None, use_sys_image=None,
+    def ensure_init(self,
+                    calljulia=None,
+                    depot=None,
+                    use_sys_image=None,
                     compile=None,
                     install_julia=None,
                     julia_path=None,
@@ -225,6 +228,8 @@ class JuliaProject:
 
             julia_path : str The path to a Julia executable.
 
+            version_spec : str A (Julia compat) version specification used to filter julia executables.
+
             install_julia : bool Whether to install julia if no executable is found.
 
             pre_instantiate_cmds : str a string of Julia commands that will be executed immediately before
@@ -256,9 +261,6 @@ compatible with package that created this instance of JuliaProject.
                 self.strict_version = strict_version
             if depot is not None:
                 self.questions.results['depot'] = depot
-            if depot is None and self._calljulia_name == "juliacall":
-                # Only PyCall needs the possibility of a special depot
-                self.questions.results['depot'] = False
             if install_julia is not None:
                 self.questions.results['install'] = install_julia
             if julia_path is not None:
@@ -315,6 +317,10 @@ compatible with package that created this instance of JuliaProject.
         if os.path.isdir(possible_depot_path) and not self.questions.results['depot'] is False:
             self.questions.results['depot'] = True
             self.logger.info("Found existing Python-project specific Julia depot")
+        if self.questions.results['depot'] is None and self._calljulia_name == "juliacall":
+            # Only PyCall needs the possibility of a special depot
+            # Not clear whether to ask in the case of juliacall or not
+            self.questions.results['depot'] = False
         self.julia_system_image = JuliaSystemImage(
             self.name,
             sys_image_dir=self.sys_image_dir,
