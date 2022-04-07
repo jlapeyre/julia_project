@@ -2,6 +2,7 @@ import os
 import logging
 from . import utils
 import julia_project_basic as basic
+import julia as pyjulia_julia
 
 LOGGER = logging.getLogger('julia_project.system_image') # shorten this?
 
@@ -83,7 +84,7 @@ class JuliaSystemImage:
         pycall_ok = basic.test_pycall(
             project_path, self.julia_path, depot_path=depot_path
         )["pycall_ok"]
-        if not "PyCall" in deps and julia.find_libpython.linked_libpython() is not None and pycall_ok:
+        if not "PyCall" in deps and pyjulia_julia.find_libpython.linked_libpython() is not None and pycall_ok:
             Pkg.add("PyCall")
             self.calljulia.simple_import("PyCall")
         if not "PythonCall" in deps:
